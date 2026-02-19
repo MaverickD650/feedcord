@@ -4,7 +4,7 @@
     "config:recommended",
     "docker:enableMajor",
     "helpers:pinGitHubActionDigests",
-    "github>MaverickD650/feedcord//autoMerge.json5",
+    "github>MaverickD650/feedcord//.renovate/autoMerge.json5",
     "github>MaverickD650/feedcord//.renovate/semanticCommits.json5",
     ":automergeBranch",
     ":dependencyDashboard",
