@@ -63,7 +63,7 @@ namespace FeedCord
             {
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " + 
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
                     "(KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"
                 );
             }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler(){AllowAutoRedirect = true});
@@ -76,7 +76,7 @@ namespace FeedCord
             }
 
             services.AddSingleton(new SemaphoreSlim(concurrentRequests));
-            
+
             services.AddSingleton<IBatchLogger, BatchLogger>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<BatchLogger>>();
@@ -105,7 +105,7 @@ namespace FeedCord
 
             var configs = ctx.Configuration.GetSection("Instances")
                 .Get<List<Config>>() ?? new List<Config>();
-            
+
             Console.WriteLine($"Number of configurations loaded: {configs.Count}");
 
             // Resolve webhook URLs from environment variables if prefixed with "env:"
@@ -140,9 +140,9 @@ namespace FeedCord
             var context = new ValidationContext(config, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
-            if (Validator.TryValidateObject(config, context, results, validateAllProperties: true)) 
+            if (Validator.TryValidateObject(config, context, results, validateAllProperties: true))
                 return;
-            
+
             var errors = string.Join("\n", results.Select(r => r.ErrorMessage));
             throw new InvalidOperationException($"Invalid config entry: {errors}");
         }
