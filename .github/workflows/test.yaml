@@ -61,13 +61,14 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
-        with:
-          files: './coverage/coverage.opencover.xml'
-          disable_search: true
-          slug: ${{ github.repository }}
-          flags: unittests
-          fail_ci_if_error: false
-          verbose: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          if [ ! -f ./coverage/coverage.opencover.xml ]; then
+            echo "Coverage file not found at ./coverage/coverage.opencover.xml"
+            exit 0
+          fi
+
+          bash <(curl -s https://codecov.io/bash) \
+            -t "${{ secrets.CODECOV_TOKEN }}" \
+            -f ./coverage/coverage.opencover.xml \
+            -F unittests \
+            -v
