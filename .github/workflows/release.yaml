@@ -50,6 +50,8 @@ jobs:
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ghcr.io/${{ steps.downcase.outputs.repo }}
+          tags: |-
+            type=semver,pattern={{version}}
 
       - name: Build and push Docker image
         id: build
@@ -58,7 +60,7 @@ jobs:
           context: ./FeedCord
           file: FeedCord/Dockerfile
           platforms: ${{ matrix.platform }}
-          tags: ghcr.io/${{ steps.downcase.outputs.repo}}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
