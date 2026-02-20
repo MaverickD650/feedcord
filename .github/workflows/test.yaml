@@ -1,6 +1,10 @@
 ---
 name: Test
 
+permissions:
+  contents: read
+  id-token: write
+
 on:
   pull_request:
     branches:
@@ -30,45 +34,36 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests with coverage
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --settings .runsettings
-
-      - name: Prepare coverage report for Codecov
-        if: always()
         run: |
-          mkdir -p coverage
-          coverage_file=$(find . -type f -name 'coverage.opencover.xml' | head -n 1)
-          if [ -n "$coverage_file" ]; then
-            cp "$coverage_file" coverage/coverage.opencover.xml
-            echo "Prepared $coverage_file -> coverage/coverage.opencover.xml"
-          else
-            echo "No coverage.opencover.xml found"
-          fi
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: test-results-10.0
-          path: '**/test-results.trx'
+          path: './TestResults/**/*.trx'
           if-no-files-found: warn
 
       - name: Publish test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2
         with:
-          files: '**/test-results.trx'
+          files: './TestResults/**/*.trx'
           check_name: Test Results (.NET 10.0)
 
       - name: Upload coverage to Codecov
         if: always()
-        run: |
-          if [ ! -f ./coverage/coverage.opencover.xml ]; then
-            echo "Coverage file not found at ./coverage/coverage.opencover.xml"
-            exit 0
-          fi
-
-          bash <(curl -s https://codecov.io/bash) \
-            -t "${{ secrets.CODECOV_TOKEN }}" \
-            -f ./coverage/coverage.opencover.xml \
-            -F unittests \
-            -v
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          use_oidc: true
+          files: './TestResults/**/coverage.cobertura.xml'
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
