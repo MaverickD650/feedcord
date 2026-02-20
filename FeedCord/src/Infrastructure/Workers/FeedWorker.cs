@@ -51,7 +51,7 @@ namespace FeedCord.Infrastructure.Workers
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    _logAggregator.SetStartTime(DateTime.Now);
+                    _logAggregator.SetStartTime(DateTime.UtcNow);
 
                     try
                     {
@@ -67,7 +67,7 @@ namespace FeedCord.Infrastructure.Workers
                         throw;
                     }
 
-                    _logAggregator.SetEndTime(DateTime.Now);
+                    _logAggregator.SetEndTime(DateTime.UtcNow);
                     await _logAggregator.SendToBatchAsync();
                     await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
                 }

@@ -59,6 +59,9 @@ namespace FeedCord
 
         private static void SetupServices(HostBuilderContext ctx, IServiceCollection services)
         {
+            using var startupLoggerFactory = LoggerFactory.Create(logging => SetupLogging(ctx, logging));
+            var startupLogger = startupLoggerFactory.CreateLogger<Startup>();
+
             services.AddHttpClient("Default", httpClient =>
             {
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
@@ -77,7 +80,8 @@ namespace FeedCord
 
             if (concurrentRequests != 20)
             {
-                Console.WriteLine($"Blanket Concurrent Requests set to: {concurrentRequests}");
+                startupLogger.LogInformation("Blanket Concurrent Requests set to: {ConcurrentRequests}",
+                    concurrentRequests);
             }
 
             services.AddSingleton(new SemaphoreSlim(concurrentRequests));
@@ -114,14 +118,14 @@ namespace FeedCord
             var configs = ctx.Configuration.GetSection("Instances")
                 .Get<List<Config>>() ?? new List<Config>();
 
-            Console.WriteLine($"Number of configurations loaded: {configs.Count}");
+            startupLogger.LogInformation("Number of configurations loaded: {ConfigCount}", configs.Count);
 
             // Resolve webhook URLs from environment variables if prefixed with "env:"
-            WebhookResolver.ResolveWebhooks(configs, msg => Console.WriteLine(msg));
+            WebhookResolver.ResolveWebhooks(configs, msg => startupLogger.LogInformation("{Message}", msg));
 
             foreach (var c in configs)
             {
-                Console.WriteLine($"Validating & Registering Background Service {c.Id}");
+                startupLogger.LogInformation("Validating & Registering Background Service {ServiceId}", c.Id);
 
                 ValidateConfiguration(c);
 

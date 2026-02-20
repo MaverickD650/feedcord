@@ -1,251 +1,210 @@
-﻿
-## appsettings.json reference
+﻿# appsettings.json reference
 
-Your `appsettings.json` is a collection of `instances`:
+Your `appsettings.json` is a collection of `Instances`.
 
-```
+```json
 {
-    "Instances": []
-}
-```
-Each Discord Channel is considered one instance, and gets one Webhook:
-
-```
-{
-     "Id": "Gaming News Channel",
-     "RssUrls": [
-       "https://examplesrssfeed1.com/rss",
-       "https://examplesrssfeed2.com/rss",
-       "https://examplesrssfeed3.com/rss",
-     ],
-     "YoutubeUrls": [ "" ],
-     "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-     "RssCheckIntervalMinutes": 3,
-     "EnableAutoRemove": true,
-     "Color": 8411391,
-     "DescriptionLimit": 200,
-     "Forum": true
+  "Instances": []
 }
 ```
 
-Here is an example of running two news channels:
+Each Discord channel is one instance and has one webhook.
 
-```
+```json
 {
-	"Instances": [
-		{
-			"Id": "Gaming News Channel",
-			"Username": "Gaming News",
-			"RssUrls": [
-				"https://examplesrssfeed1.com/rss",
-				"https://examplesrssfeed2.com/rss",
-				"https://examplesrssfeed3.com/rss"
-			],
-			"YoutubeUrls": [ "" ],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 3,
-			"EnableAutoRemove": true,
-			"Color": 8411391,
-			"DescriptionLimit": 200,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": false
-		},
-		{
-			"Id": "Tech News Channel",
-			"Username": "Tech News",
-			"RssUrls": [
-				"https://examplesrssfeed4.com/rss",
-				"https://examplesrssfeed5.com/rss",
-				"https://examplesrssfeed6.com/rss"
-			],
-			"YoutubeUrls": [ "" ],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 3,
-			"EnableAutoRemove": true,
-			"Color": 8411391,
-			"DescriptionLimit": 200,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": false
-		}
-	],
-}
-
-```
-
-Some properties are required while others are optional. A bare-bones `appsettings.json` file would look like this:
-
-```
-{
-	"Instances": [
-		{
-			"Id": "Runescape Feed",
-			"YoutubeUrls": [
-				""
-			],
-			"RssUrls": [
-				"https://github.com/qolors/FeedCord/releases.atom"
-			],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 15,
-			"Color": 8411391,
-			"DescriptionLimit": 500,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": true
-		}
-	],
-	"ConcurrentRequests": 40
-}
-```
-### Concurrent Requests
-
-You have two `ConcurrentRequest` properties. One that lives outside the Instance array, and the other that lives for each instance.
-
-Let's take a look here for example. This is outside of your instance. This controls the maximum amount of requests that can be made at the same time. This blankets over all instances. So a `ConcurrentRequests` value of 5 here says that no matter how may instances I have running, only allow 5 requests being made at any given time. This is to help throttle your whole application for control if needed:
-
-```
-{
-	"Instances": [ ..All of My Instances.. ],
-	"ConcurrentRequests": 5
+  "Id": "Gaming News Channel",
+  "RssUrls": [
+    "https://examplesrssfeed1.com/rss",
+    "https://examplesrssfeed2.com/rss",
+    "https://examplesrssfeed3.com/rss"
+  ],
+  "YoutubeUrls": [""],
+  "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+  "RssCheckIntervalMinutes": 3,
+  "EnableAutoRemove": true,
+  "Color": 8411391,
+  "DescriptionLimit": 200,
+  "Forum": true,
+  "MarkdownFormat": false,
+  "PersistenceOnShutdown": false
 }
 ```
 
-### HTTP Fallback User-Agents (Advanced / Optional)
+Example with two configured channels:
 
-`HttpFallbackUserAgents` is an optional top-level array for advanced troubleshooting only. Most setups should leave this unset and use the built-in defaults.
-
-Now for this example we will show a `ConcurrentRequest` inside of an instance. This will only throttle the YouTube & RSS Urls in that instance. So a `ConcurrentRequests` value of 1 here says that we only allow one request to be made at any given time for the `Gaming` instance. This is if you want to have control only for certain urls/domains. Useful if you need to respect a websites policy or to not spam a domain:
-
-```
+```json
 {
-	"Instances": [
-		{
-			"Id": "Gaming",
-			
-			..My Other Properties..
-			
-			"ConcurrentRequests": 1
-		}
-	],
-	"ConcurrentRequests": 40
+  "Instances": [
+    {
+      "Id": "Gaming News Channel",
+      "Username": "Gaming News",
+      "RssUrls": [
+        "https://examplesrssfeed1.com/rss",
+        "https://examplesrssfeed2.com/rss",
+        "https://examplesrssfeed3.com/rss"
+      ],
+      "YoutubeUrls": [""],
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+      "RssCheckIntervalMinutes": 3,
+      "EnableAutoRemove": true,
+      "Color": 8411391,
+      "DescriptionLimit": 200,
+      "Forum": true,
+      "MarkdownFormat": false,
+      "PersistenceOnShutdown": false
+    },
+    {
+      "Id": "Tech News Channel",
+      "Username": "Tech News",
+      "RssUrls": [
+        "https://examplesrssfeed4.com/rss",
+        "https://examplesrssfeed5.com/rss",
+        "https://examplesrssfeed6.com/rss"
+      ],
+      "YoutubeUrls": [""],
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+      "RssCheckIntervalMinutes": 3,
+      "EnableAutoRemove": true,
+      "Color": 8411391,
+      "DescriptionLimit": 200,
+      "Forum": true,
+      "MarkdownFormat": false,
+      "PersistenceOnShutdown": false
+    }
+  ],
+  "ConcurrentRequests": 40
 }
 ```
 
-### Post Filters
+A minimal working file:
 
-Post filters are useful if you are looking to sift out specific content from an RSS Feed. The `PostFilter` property is an array of objects. Each object has a `Url` & `Filters`. This allows you to set a specific filter for each url, but if you are looking to apply a general filter to all urls you can do that as well - see below:
-
-```
+```json
 {
-	"Instances": [
-		{
-			"Id": "FeedCord",
-			"YoutubeUrls": [
-				""
-			],
-			"RssUrls": [
-				"https://github.com/qolors/FeedCord/releases.atom"
-			],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 15,
-			"Color": 8411391,
-			"DescriptionLimit": 500,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": true,
-			"ConcurrentRequests": 10,
-			"PostFilters": [
-			{
-				"Url": "https://github.com/qolors/FeedCord/releases.atom",
-				"Filters": ["release", "new feature"]
-			}
-		]
-		}
-	],
-	"ConcurrentRequests": 40
+  "Instances": [
+    {
+      "Id": "Runescape Feed",
+      "YoutubeUrls": [""],
+      "RssUrls": [
+        "https://github.com/qolors/FeedCord/releases.atom"
+      ],
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+      "RssCheckIntervalMinutes": 15,
+      "Color": 8411391,
+      "DescriptionLimit": 500,
+      "Forum": true,
+      "MarkdownFormat": false,
+      "PersistenceOnShutdown": true
+    }
+  ],
+  "ConcurrentRequests": 40
 }
 ```
 
-As you can see above we did the following:
+## Concurrent Requests
 
-- Assign our RssUrl a Filter by providing the direct url
-- Assign two string values that must be contained in the posts content, otherwise skipped.
+You can configure concurrency globally and per instance.
 
-Here is an example of two urls with each their own filter:
+- Top-level `ConcurrentRequests` limits the whole application.
+- Instance-level `ConcurrentRequests` limits that single instance.
 
-```
+Top-level example:
+
+```json
 {
-	"Instances": [
-		{
-			"Id": "FeedCord",
-			"YoutubeUrls": [
-				""
-			],
-			"RssUrls": [
-				"https://github.com/qolors/FeedCord/releases.atom",
-				"https://github.com/qolors/Clam-Shell/releases.atom"
-			],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 15,
-			"Color": 8411391,
-			"DescriptionLimit": 500,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": true,
-			"ConcurrentRequests": 10,
-			"PostFilters": [
-			{
-				"Url": "https://github.com/qolors/FeedCord/releases.atom",
-				"Filters": ["release", "new feature"]
-			},
-			{
-				"Url": "https://github.com/qolors/Clam-Shell/releases.atom",
-				"Filters": ["phishing"]
-			}
-		]
-		}
-	],
-	"ConcurrentRequests": 40
-}
-```
-Great. But what if we have like 30 urls that we want to apply the same filter to? It could get quite tedious..
-
-Luckily you can simply do this to do a filter for all feeds - set `Url` equal to `all`:
-
-```
-{
-	"Instances": [
-		{
-			"Id": "FeedCord",
-			"YoutubeUrls": [
-				""
-			],
-			"RssUrls": [
-				"https://github.com/qolors/FeedCord/releases.atom",
-				"https://github.com/qolors/Clam-Shell/releases.atom"
-			],
-			"DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-			"RssCheckIntervalMinutes": 15,
-			"Color": 8411391,
-			"DescriptionLimit": 500,
-			"Forum": true,
-			"MarkdownFormat": false,
-			"PersistenceOnShutdown": true,
-			"ConcurrentRequests": 10,
-			"PostFilters": [
-			{
-				"Url": "all",
-				"Filters": ["release", "new feature", "phishing"]
-			}
-		]
-		}
-	],
-	"ConcurrentRequests": 40
+  "Instances": ["..."],
+  "ConcurrentRequests": 5
 }
 ```
 
+Instance-level example:
+
+```json
+{
+  "Instances": [
+    {
+      "Id": "Gaming",
+      "ConcurrentRequests": 1
+    }
+  ],
+  "ConcurrentRequests": 40
+}
+```
+
+## HTTP Fallback User-Agents (Advanced / Optional)
+
+`HttpFallbackUserAgents` is an optional top-level array for advanced troubleshooting. Most setups should leave this unset and use defaults.
+
+## Post Filters
+
+`PostFilters` is an array of objects with `Url` and `Filters` fields.
+
+Per-URL filters:
+
+```json
+{
+  "Instances": [
+    {
+      "Id": "FeedCord",
+      "YoutubeUrls": [""],
+      "RssUrls": [
+        "https://github.com/qolors/FeedCord/releases.atom",
+        "https://github.com/qolors/Clam-Shell/releases.atom"
+      ],
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+      "RssCheckIntervalMinutes": 15,
+      "Color": 8411391,
+      "DescriptionLimit": 500,
+      "Forum": true,
+      "MarkdownFormat": false,
+      "PersistenceOnShutdown": true,
+      "ConcurrentRequests": 10,
+      "PostFilters": [
+        {
+          "Url": "https://github.com/qolors/FeedCord/releases.atom",
+          "Filters": ["release", "new feature"]
+        },
+        {
+          "Url": "https://github.com/qolors/Clam-Shell/releases.atom",
+          "Filters": ["phishing"]
+        }
+      ]
+    }
+  ],
+  "ConcurrentRequests": 40
+}
+```
+
+Filter all feeds with `"Url": "all"`:
+
+```json
+{
+  "Instances": [
+    {
+      "Id": "FeedCord",
+      "YoutubeUrls": [""],
+      "RssUrls": [
+        "https://github.com/qolors/FeedCord/releases.atom",
+        "https://github.com/qolors/Clam-Shell/releases.atom"
+      ],
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
+      "RssCheckIntervalMinutes": 15,
+      "Color": 8411391,
+      "DescriptionLimit": 500,
+      "Forum": true,
+      "MarkdownFormat": false,
+      "PersistenceOnShutdown": true,
+      "ConcurrentRequests": 10,
+      "PostFilters": [
+        {
+          "Url": "all",
+          "Filters": ["release", "new feature", "phishing"]
+        }
+      ]
+    }
+  ],
+  "ConcurrentRequests": 40
+}
+```
 
 ---
 
@@ -253,38 +212,36 @@ Luckily you can simply do this to do a filter for all feeds - set `Url` equal to
 
 ### Required
 
-- **Id**: The unique name of the RSS Feed Service. Helpful for logging purposes.
-- **RssUrls**: The list of RSS Feeds you want to get posts from.
-- **YoutubeUrls**: The list of RSS Feeds you want to get posts from.
-- **DiscordWebhookUrl**: The created Webhook from your designated Discord Text Channel.
-- **RssCheckIntervalMinutes**: How often you want to check for new Posts from all of your Url feeds in minutes.
-- **Color**: Color of the Post's embedded message.
-- **DescriptionLimit**: Limits the length of the description of the post to this number.
-- **Forum**: Determines if the post will be sent to a Forum type channel.
-- **MarkdownFormat**: If set true, will post feed item in markdown instead of an Embed.
-- **PersistenceOnShutdown**: If set true, will store the last run date when restart or shutdown to catch missed posts.
+- **Id**: Unique name of the feed service instance.
+- **RssUrls**: RSS feeds to read.
+- **YoutubeUrls**: YouTube feeds/channels to read.
+- **DiscordWebhookUrl**: Discord webhook URL for posting.
+- **RssCheckIntervalMinutes**: Poll interval in minutes.
+- **Color**: Embed color.
+- **DescriptionLimit**: Maximum description length.
+- **Forum**: `true` for forum channels, `false` for text channels.
+- **MarkdownFormat**: `true` for markdown posts, `false` for embeds.
+- **PersistenceOnShutdown**: Persist last-run date on shutdown.
 
 ### Validation Ranges
 
-- **RssCheckIntervalMinutes**: must be between `1` and `1440`.
-- **DescriptionLimit**: must be between `1` and `4000`.
-- **ConcurrentRequests (Top-level)**: must be between `1` and `200`.
-- **ConcurrentRequests (Inside Instance)**: must be between `1` and `200`.
+- **RssCheckIntervalMinutes**: `1` to `1440`.
+- **DescriptionLimit**: `1` to `4000`.
+- **ConcurrentRequests (Top-level)**: `1` to `200`.
+- **ConcurrentRequests (Instance)**: `1` to `200`.
 
 ### Optional
 
-
-- **Username**: The name of the bot that will be sending the messages.
-- **EnableAutoRemove**: If set to true - FeedCord will kick a url out of the list after 3 failed attempts to parse the content.
-- **AvatarUrl**: The displayed icon for the bot.
-- **AuthorIcon**: The icon displayed for the Author.
-- **AuthorName**: Display name of Author.
-- **AuthorUrl**: The external link it will send users to when they click on the Author's Name.
-- **FallbackImage**: FeedCord always attempts to grab the webpage's image from metadata. If for some reason this fails, it will display this image instead.
-- **ConcurrentRequests**: How many requests FeedCord can have going at once.
-- **ConcurrentRequests (Inside Instance)**: How many requests the instance itself can have going at once.
-- **HttpFallbackUserAgents**: Advanced optional top-level override for fallback user-agents when initial feed requests fail. Usually not needed.
-- **PostFilters**: A collection of phrases/words that are used to filter out RSS Items (filters the Title & Content)
+- **Username**: Bot display name.
+- **EnableAutoRemove**: Remove URL after repeated failures.
+- **AvatarUrl**: Bot avatar image.
+- **AuthorIcon**: Embed author icon.
+- **AuthorName**: Embed author display name.
+- **AuthorUrl**: Link when clicking author name.
+- **FallbackImage**: Backup image if metadata parsing fails.
+- **ConcurrentRequests**: Per-instance request limit.
+- **HttpFallbackUserAgents**: Optional top-level fallback user-agent list.
+- **PostFilters**: Phrase filters applied to title/content.
 
 ---
 
