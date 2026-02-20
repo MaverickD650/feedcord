@@ -30,6 +30,18 @@ jobs:
       - name: Run tests with coverage
         run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --settings .runsettings
 
+      - name: Prepare coverage report for Codecov
+        if: always()
+        run: |
+          mkdir -p coverage
+          coverage_file=$(find . -type f -name 'coverage.opencover.xml' | head -n 1)
+          if [ -n "$coverage_file" ]; then
+            cp "$coverage_file" coverage/coverage.opencover.xml
+            echo "Prepared $coverage_file -> coverage/coverage.opencover.xml"
+          else
+            echo "No coverage.opencover.xml found"
+          fi
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -49,9 +61,11 @@ jobs:
         if: always()
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
-          files: '**/coverage.opencover.xml'
+          files: './coverage/coverage.opencover.xml'
+          disable_search: true
           flags: unittests
           fail_ci_if_error: false
+          use_legacy_upload_endpoint: true
           verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
