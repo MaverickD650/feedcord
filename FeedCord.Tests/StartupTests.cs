@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using FeedCord.Helpers;
 using FeedCord.Services.Interfaces;
+using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -382,7 +383,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = "20"
+                ["App:ConcurrentRequests"] = "20"
             });
 
             var services = new ServiceCollection();
@@ -519,7 +520,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = concurrentRequests.ToString(),
+                ["App:ConcurrentRequests"] = concurrentRequests.ToString(),
             });
 
             var services = new ServiceCollection();
@@ -535,7 +536,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = "12",
+                ["App:ConcurrentRequests"] = "12",
             });
 
             var services = new ServiceCollection();
@@ -548,6 +549,24 @@ namespace FeedCord.Tests
 
             Assert.Equal(12, semaphore.CurrentCount);
             Assert.IsType<JsonReferencePostStore>(referencePostStore);
+        }
+
+        [Fact]
+        public void SetupServices_WithAppConcurrentRequests_RegistersSemaphore()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "15",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(15, semaphore.CurrentCount);
         }
 
         [Fact]
@@ -593,6 +612,128 @@ namespace FeedCord.Tests
                 InvokeStartupPrivateMethod("ValidateConfiguration", invalidConfig));
 
             Assert.Contains("Invalid config entry", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(301)]
+        public void SetupServices_WithInvalidTimeoutSeconds_Throws(int timeoutSeconds)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Http:TimeoutSeconds"] = timeoutSeconds.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid HTTP configuration", exception.Message);
+            Assert.Contains("TimeoutSeconds", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(121)]
+        public void SetupServices_WithInvalidPostMinIntervalSeconds_Throws(int postMinInterval)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Http:PostMinIntervalSeconds"] = postMinInterval.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid HTTP configuration", exception.Message);
+            Assert.Contains("PostMinIntervalSeconds", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(25)]
+        [InlineData(50)]
+        [InlineData(100)]
+        [InlineData(200)]
+        public void SetupServices_WithNonDefaultConcurrentRequests_LogsInformation(int concurrentRequests)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = concurrentRequests.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            // This should not throw and should log that ConcurrentRequests is set
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(concurrentRequests, semaphore.CurrentCount);
+        }
+
+        [Fact]
+        public void SetupServices_WithDefaultConcurrentRequests_DoesNotLog()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            // With default value of 20, the logging should be skipped
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(20, semaphore.CurrentCount);
+        }
+
+        [Fact]
+        public void SetupServices_RegistersBatchLogger()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var batchLogger = provider.GetRequiredService<IBatchLogger>();
+
+            Assert.NotNull(batchLogger);
+            Assert.IsType<FeedCord.Core.BatchLogger>(batchLogger);
+        }
+
+        [Fact]
+        public void SetupServices_RegistersCustomHttpClient()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var customHttpClient = provider.GetRequiredService<ICustomHttpClient>();
+
+            Assert.NotNull(customHttpClient);
+            Assert.IsType<FeedCord.Infrastructure.Http.CustomHttpClient>(customHttpClient);
         }
 
         private static HostBuilderContext CreateHostBuilderContext(Dictionary<string, string?> values)

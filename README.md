@@ -54,7 +54,17 @@ Provided below is a quick guide to get up and running.
       "PersistenceOnShutdown": true
     }
   ],
-  "ConcurrentRequests": 40
+  "App": {
+    "ConcurrentRequests": 40
+  },
+  "Http": {
+    "TimeoutSeconds": 30,
+    "PostMinIntervalSeconds": 2,
+    "FallbackUserAgents": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
+      "FeedFetcher-Google"
+    ]
+  }
 }
 ```
 

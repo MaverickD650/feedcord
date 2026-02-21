@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
 using FeedCord.Helpers;
+using System.Threading.RateLimiting;
 
 namespace FeedCord.Infrastructure.Http
 {
@@ -21,15 +22,13 @@ namespace FeedCord.Infrastructure.Http
         private readonly SemaphoreSlim _throttle;
         private readonly ConcurrentDictionary<string, string> _userAgentCache;
         private readonly IReadOnlyList<string> _fallbackUserAgents;
-        // Rate limiting fields
-        private readonly SemaphoreSlim _rateLimiter = new SemaphoreSlim(1, 1);
-        private DateTime _lastPostTime = DateTime.MinValue;
-        private readonly TimeSpan _minPostInterval = TimeSpan.FromSeconds(2);
+        private readonly TokenBucketRateLimiter _postRateLimiter;
         public CustomHttpClient(
             ILogger<CustomHttpClient> logger,
             HttpClient innerClient,
             SemaphoreSlim throttle,
-            IEnumerable<string>? fallbackUserAgents = null)
+            IEnumerable<string>? fallbackUserAgents = null,
+            int postMinIntervalSeconds = 2)
         {
             _logger = logger;
             _throttle = throttle;
@@ -40,6 +39,18 @@ namespace FeedCord.Infrastructure.Http
                 .Select(ua => ua.Trim())
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
+
+            var normalizedPostIntervalSeconds = Math.Max(1, postMinIntervalSeconds);
+            _postRateLimiter = new TokenBucketRateLimiter(
+                new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 1,
+                    TokensPerPeriod = 1,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(normalizedPostIntervalSeconds),
+                    AutoReplenishment = true,
+                    QueueLimit = int.MaxValue,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                });
         }
 
         public async Task<HttpResponseMessage?> GetAsyncWithFallback(string url, CancellationToken cancellationToken = default)
@@ -87,42 +98,27 @@ namespace FeedCord.Infrastructure.Http
 
         public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum, CancellationToken cancellationToken = default)
         {
-            await _rateLimiter.WaitAsync(cancellationToken);
-            try
+            using var lease = await _postRateLimiter.AcquireAsync(1, cancellationToken);
+
+            var response = await PostWithThrottleAsync(url, isForum ? forumChannelContent : textChannelContent, cancellationToken);
+
+            if (response.StatusCode != HttpStatusCode.NoContent)
             {
-                // Enforce 1 request per 2 seconds
-                var now = DateTime.UtcNow;
-                var waitTime = _minPostInterval - (now - _lastPostTime);
-                if (waitTime > TimeSpan.Zero)
+                var responseBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Discord POST failed. Status: {StatusCode}, Body: {Body}", response.StatusCode, responseBody);
+
+                response = await PostWithThrottleAsync(url, !isForum ? forumChannelContent : textChannelContent, cancellationToken);
+
+                if (response.StatusCode == HttpStatusCode.NoContent)
                 {
-                    await Task.Delay(waitTime, cancellationToken);
+                    _logger.LogWarning(
+                        "Successfully posted to Discord Channel after switching channel type - Change Forum Property in Config!!");
                 }
-                _lastPostTime = DateTime.UtcNow;
-
-                var response = await PostWithThrottleAsync(url, isForum ? forumChannelContent : textChannelContent, cancellationToken);
-
-                if (response.StatusCode != HttpStatusCode.NoContent)
+                else
                 {
-                    var responseBody = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Discord POST failed. Status: {StatusCode}, Body: {Body}", response.StatusCode, responseBody);
-
-                    response = await PostWithThrottleAsync(url, !isForum ? forumChannelContent : textChannelContent, cancellationToken);
-
-                    if (response.StatusCode == HttpStatusCode.NoContent)
-                    {
-                        _logger.LogWarning(
-                            "Successfully posted to Discord Channel after switching channel type - Change Forum Property in Config!!");
-                    }
-                    else
-                    {
-                        var fallbackResponseBody = await response.Content.ReadAsStringAsync();
-                        _logger.LogError("Failed to post to Discord Channel after fallback. Status: {StatusCode}, Body: {Body}", response.StatusCode, fallbackResponseBody);
-                    }
+                    var fallbackResponseBody = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to post to Discord Channel after fallback. Status: {StatusCode}, Body: {Body}", response.StatusCode, fallbackResponseBody);
                 }
-            }
-            finally
-            {
-                _rateLimiter.Release();
             }
         }
 

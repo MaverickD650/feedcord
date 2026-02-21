@@ -104,15 +104,17 @@ A minimal working file:
 
 You can configure concurrency globally and per instance.
 
-- Top-level `ConcurrentRequests` limits the whole application.
+- `App.ConcurrentRequests` limits the whole application.
 - Instance-level `ConcurrentRequests` limits that single instance.
 
-Top-level example:
+Top-level app settings example:
 
 ```json
 {
-  "Instances": ["..."],
-  "ConcurrentRequests": 5
+  "App": {
+    "ConcurrentRequests": 5
+  },
+  "Instances": ["..."]
 }
 ```
 
@@ -126,13 +128,31 @@ Instance-level example:
       "ConcurrentRequests": 1
     }
   ],
-  "ConcurrentRequests": 40
+  "App": {
+    "ConcurrentRequests": 40
+  }
 }
 ```
 
-## HTTP Fallback User-Agents (Advanced / Optional)
+## HTTP Settings (Advanced / Optional)
 
-`HttpFallbackUserAgents` is an optional top-level array for advanced troubleshooting. Most setups should leave this unset and use defaults.
+`Http` is an optional top-level object for advanced HTTP tuning.
+
+Example:
+
+```json
+{
+  "Http": {
+    "TimeoutSeconds": 30,
+    "PostMinIntervalSeconds": 2,
+    "DefaultUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
+    "FallbackUserAgents": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
+      "FeedFetcher-Google"
+    ]
+  }
+}
+```
 
 ## Post Filters
 
@@ -227,7 +247,7 @@ Filter all feeds with `"Url": "all"`:
 
 - **RssCheckIntervalMinutes**: `1` to `1440`.
 - **DescriptionLimit**: `1` to `4000`.
-- **ConcurrentRequests (Top-level)**: `1` to `200`.
+- **ConcurrentRequests (App.ConcurrentRequests)**: `1` to `200`.
 - **ConcurrentRequests (Instance)**: `1` to `200`.
 
 ### Optional
@@ -240,5 +260,6 @@ Filter all feeds with `"Url": "all"`:
 - **AuthorUrl**: Link when clicking author name.
 - **FallbackImage**: Backup image if metadata parsing fails.
 - **ConcurrentRequests**: Per-instance request limit.
-- **HttpFallbackUserAgents**: Optional top-level fallback user-agent list.
+- **App**: Optional top-level app settings object.
+- **Http**: Optional top-level HTTP settings object.
 - **PostFilters**: Phrase filters applied to title/content.

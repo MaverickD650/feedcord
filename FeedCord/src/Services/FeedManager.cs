@@ -3,7 +3,6 @@ using FeedCord.Helpers;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.IO.Compression;
 using System.Text;
 using FeedCord.Core.Interfaces;
 using FeedCord.Services.Helpers;
@@ -369,17 +368,8 @@ namespace FeedCord.Services
         }
         private async Task<string> GetResponseContentAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            if (response.Content.Headers.ContentEncoding.Contains("gzip"))
-            {
-                await using var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(cancellationToken), CompressionMode.Decompress);
-                using var reader = new StreamReader(decompressedStream, Encoding.UTF8);
-                return await reader.ReadToEndAsync();
-            }
-            else
-            {
-                var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-                return EncodingExtractor.ConvertBytesByComparing(bytes, response.Content.Headers);
-            }
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            return EncodingExtractor.ConvertBytesByComparing(bytes, response.Content.Headers);
         }
 
         private void HandleFeedError(string url, FeedState feedState, Exception ex)
