@@ -11,10 +11,9 @@ RUN dotnet publish FeedCord.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 
-RUN adduser --disabled-password --home /app --gecos "" appuser
 COPY --from=build /app/publish ./
 COPY --from=build /src/restart-first-run.sh ./
-RUN chmod +x /app/restart-first-run.sh && chown -R appuser:appuser /app
+RUN chmod +x /app/restart-first-run.sh && chown -R 10001:10001 /app
 
-USER appuser
+USER 10001
 ENTRYPOINT ["/app/restart-first-run.sh"]
