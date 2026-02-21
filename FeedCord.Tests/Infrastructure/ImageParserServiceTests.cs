@@ -169,7 +169,7 @@ namespace FeedCord.Tests.Infrastructure
         [Fact]
         public async Task TryExtractImageLink_WithRelativeUrl_FallsBackToWebpageScrape()
         {
-            // Arrange - Create XML with relative URL which should fallback
+            // Arrange
             var xml = @"<?xml version='1.0'?>
 <rss>
     <channel>
@@ -189,8 +189,29 @@ namespace FeedCord.Tests.Infrastructure
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
 
-            // Assert - May extract or fallback
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithRelativeUrlAndInvalidBaseUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='/images/photo.jpg' />
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("", xml);
+
+            // Assert
             Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -472,6 +493,7 @@ namespace FeedCord.Tests.Infrastructure
         #region URL Normalization Tests
 
         [Theory]
+        [InlineData("https://example.com/path/", "http://example.com/image.jpg")]
         [InlineData("https://example.com/image.jpg", "https://example.com/image.jpg")]
         [InlineData("https://example.com/path/", "image.jpg")]
         [InlineData("https://example.com/path/page.html", "/images/image.jpg")]
@@ -494,6 +516,48 @@ namespace FeedCord.Tests.Infrastructure
 
             // Assert
             Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMalformedAbsoluteLikeUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='http://[::1' />
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("", xml);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithUnsupportedSchemeUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='ftp://example.com/image.jpg' />
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         #endregion
