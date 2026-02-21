@@ -153,6 +153,32 @@ namespace FeedCord.Tests.Infrastructure
             Assert.True(callCount >= 2, $"Expected at least 2 calls, got {callCount}");
         }
 
+        [Fact]
+        public async Task GetAsyncWithFallback_WithInternalServerError_DoesNotTryUserAgentFallback()
+        {
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var callCount = 0;
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            handler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+                {
+                    callCount++;
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+                });
+
+            var httpClient = new HttpClient(handler.Object);
+            var throttle = new SemaphoreSlim(10, 10);
+            var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1", "UA-2" });
+
+            var response = await client.GetAsyncWithFallback("https://example.com");
+
+            Assert.NotNull(response);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Equal(1, callCount);
+        }
+
         #endregion
 
         #region PostAsyncWithFallback Tests

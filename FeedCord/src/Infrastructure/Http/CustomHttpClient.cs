@@ -57,7 +57,7 @@ namespace FeedCord.Infrastructure.Http
 
                 response = await SendGetAsync(request, cancellationToken);
 
-                if (!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode && ShouldTryAlternative(response.StatusCode))
                 {
                     response = await TryAlternativeAsync(url, response, cancellationToken);
                 }
@@ -180,6 +180,14 @@ namespace FeedCord.Infrastructure.Http
                 _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
             }
             return oldResponse;
+        }
+
+        private static bool ShouldTryAlternative(HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.Forbidden
+                   || statusCode == HttpStatusCode.Unauthorized
+                   || statusCode == HttpStatusCode.TooManyRequests
+                   || statusCode == HttpStatusCode.NotAcceptable;
         }
 
         private async Task<string> FetchRobotsContentAsync(string url, CancellationToken cancellationToken)
