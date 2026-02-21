@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using System.Net;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
@@ -66,23 +67,41 @@ namespace FeedCord
             using var startupLoggerFactory = LoggerFactory.Create(logging => SetupLogging(ctx, logging));
             var startupLogger = startupLoggerFactory.CreateLogger<Startup>();
 
+            var appOptions = ctx.Configuration.GetSection(AppOptions.SectionName).Get<AppOptions>() ?? new AppOptions();
+
+            var appOptionsContext = new ValidationContext(appOptions, serviceProvider: null, items: null);
+            var appOptionsValidationResults = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(appOptions, appOptionsContext, appOptionsValidationResults, validateAllProperties: true))
+            {
+                var appErrors = string.Join("\n", appOptionsValidationResults.Select(r => r.ErrorMessage));
+                throw new InvalidOperationException($"Invalid app configuration: {appErrors}");
+            }
+
+            var httpOptions = ctx.Configuration.GetSection(HttpOptions.SectionName).Get<HttpOptions>() ?? new HttpOptions();
+
+            var httpOptionsContext = new ValidationContext(httpOptions, serviceProvider: null, items: null);
+            var httpOptionsValidationResults = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(httpOptions, httpOptionsContext, httpOptionsValidationResults, validateAllProperties: true))
+            {
+                var httpErrors = string.Join("\n", httpOptionsValidationResults.Select(r => r.ErrorMessage));
+                throw new InvalidOperationException($"Invalid HTTP configuration: {httpErrors}");
+            }
+
+            var fallbackUserAgents = httpOptions.FallbackUserAgents;
+
             services.AddHttpClient("Default", httpClient =>
             {
-                httpClient.Timeout = TimeSpan.FromSeconds(30);
-                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-                    "(KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"
-                );
+                httpClient.Timeout = TimeSpan.FromSeconds(httpOptions.TimeoutSeconds);
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(httpOptions.DefaultUserAgent);
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler() { AllowAutoRedirect = true })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
+            })
             .AddStandardResilienceHandler();
 
-            var concurrentRequests = ctx.Configuration.GetValue("ConcurrentRequests", 20);
-
-            if (concurrentRequests < 1 || concurrentRequests > 200)
-            {
-                throw new InvalidOperationException("Top-level ConcurrentRequests must be between 1 and 200.");
-            }
+            var concurrentRequests = appOptions.ConcurrentRequests;
 
             if (concurrentRequests != 20)
             {
@@ -104,11 +123,13 @@ namespace FeedCord
                 var httpClient = httpClientFactory.CreateClient("Default");
                 var logger = sp.GetRequiredService<ILogger<CustomHttpClient>>();
                 var throttle = sp.GetRequiredService<SemaphoreSlim>();
-                var fallbackUserAgents = ctx.Configuration
-                    .GetSection("HttpFallbackUserAgents")
-                    .Get<string[]>();
 
-                return new CustomHttpClient(logger, httpClient, throttle, fallbackUserAgents);
+                return new CustomHttpClient(
+                    logger,
+                    httpClient,
+                    throttle,
+                    fallbackUserAgents,
+                    httpOptions.PostMinIntervalSeconds);
             });
 
             services.AddTransient<ILogAggregatorFactory, LogAggregatorFactory>();

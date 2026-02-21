@@ -382,7 +382,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = "20"
+                ["App:ConcurrentRequests"] = "20"
             });
 
             var services = new ServiceCollection();
@@ -519,7 +519,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = concurrentRequests.ToString(),
+                ["App:ConcurrentRequests"] = concurrentRequests.ToString(),
             });
 
             var services = new ServiceCollection();
@@ -535,7 +535,7 @@ namespace FeedCord.Tests
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["ConcurrentRequests"] = "12",
+                ["App:ConcurrentRequests"] = "12",
             });
 
             var services = new ServiceCollection();
@@ -548,6 +548,24 @@ namespace FeedCord.Tests
 
             Assert.Equal(12, semaphore.CurrentCount);
             Assert.IsType<JsonReferencePostStore>(referencePostStore);
+        }
+
+        [Fact]
+        public void SetupServices_WithAppConcurrentRequests_RegistersSemaphore()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "15",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(15, semaphore.CurrentCount);
         }
 
         [Fact]
