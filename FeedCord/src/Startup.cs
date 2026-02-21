@@ -21,10 +21,13 @@ namespace FeedCord
 {
     public class Startup
     {
+        internal static Func<string[], IHost> BuildHost { get; set; } = args => CreateHostBuilder(args).Build();
+        internal static Action<IHost> RunHost { get; set; } = host => host.Run();
+
         public static void Initialize(string[] args)
         {
-            var host = CreateHostBuilder(args).Build();
-            host.Run();
+            var host = BuildHost(args);
+            RunHost(host);
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args)
@@ -114,6 +117,11 @@ namespace FeedCord
             services.AddTransient<IImageParserService, ImageParserService>();
             services.AddTransient<IYoutubeParsingService, YoutubeParsingService>();
             services.AddTransient<IDiscordPayloadService, DiscordPayloadService>();
+            services.AddSingleton<IReferencePostStore>(_ =>
+            {
+                var path = Path.Combine(AppContext.BaseDirectory, "feed_dump.json");
+                return new JsonReferencePostStore(path);
+            });
 
             var configs = ctx.Configuration.GetSection("Instances")
                 .Get<List<Config>>() ?? new List<Config>();
