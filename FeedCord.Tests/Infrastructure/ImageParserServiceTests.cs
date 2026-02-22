@@ -167,6 +167,27 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithItunesImageNoHrefAttribute_UsesDescriptionImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast.dtd'>
+    <channel>
+        <item>
+            <itunes:image />
+            <description><![CDATA[<img src='https://example.com/desc-image.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/desc-image.jpg", result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithImageInDescription_ReturnsImageUrl()
         {
             // Arrange
@@ -195,6 +216,27 @@ namespace FeedCord.Tests.Infrastructure
     <channel>
         <item>
             <description><![CDATA[<img src='' />]]></description>
+            <content:encoded><![CDATA[<img src='https://example.com/content.jpg' />]]></content:encoded>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/content.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithNoDescriptionImage_UsesContentEncodedImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:content='http://purl.org/rss/1.0/modules/content/'>
+    <channel>
+        <item>
+            <description><![CDATA[No image here]]></description>
             <content:encoded><![CDATA[<img src='https://example.com/content.jpg' />]]></content:encoded>
         </item>
     </channel>
