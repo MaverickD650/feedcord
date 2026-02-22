@@ -52,7 +52,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250);
+        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert - should parse without error (may have 0 or more posts depending on PostBuilder)
         Assert.NotNull(result);
@@ -84,7 +84,7 @@ public class RssParsingServiceTests
         );
 
         // Act - should handle preprocessing without error
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250);
+        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -110,7 +110,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250);
+        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
@@ -129,7 +129,7 @@ public class RssParsingServiceTests
         );
 
         // Act - should not throw exception
-        var result = await service.ParseRssFeedAsync(invalidXml, trim: 250);
+        var result = await service.ParseRssFeedAsync(invalidXml, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
@@ -172,7 +172,7 @@ public class RssParsingServiceTests
         );
 
         // Act - trim to 250 characters
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250);
+        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert - description should be trimmed
         if (result.Count > 0 && result[0] != null)
@@ -204,7 +204,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250);
+        var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -230,7 +230,7 @@ public class RssParsingServiceTests
         );
 
         _mockYoutubeParser
-            .Setup(x => x.GetXmlUrlAndFeed(channelUrl))
+          .Setup(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult<Post?>(expectedPost));
 
         var service = new RssParsingService(
@@ -240,12 +240,12 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseYoutubeFeedAsync(channelUrl);
+        var result = await service.ParseYoutubeFeedAsync(channelUrl, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal("YouTube Video", result?.Title);
-        _mockYoutubeParser.Verify(x => x.GetXmlUrlAndFeed(channelUrl), Times.Once);
+        _mockYoutubeParser.Verify(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class RssParsingServiceTests
         var invalidUrl = "https://invalid-youtube-url";
 
         _mockYoutubeParser
-            .Setup(x => x.GetXmlUrlAndFeed(invalidUrl))
+          .Setup(x => x.GetXmlUrlAndFeed(invalidUrl, It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult<Post?>((Post?)null!));
 
         var service = new RssParsingService(
@@ -265,7 +265,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseYoutubeFeedAsync(invalidUrl);
+        var result = await service.ParseYoutubeFeedAsync(invalidUrl, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -345,7 +345,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseRssFeedAsync(atomXml, trim: 250);
+        var result = await service.ParseRssFeedAsync(atomXml, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -378,7 +378,7 @@ public class RssParsingServiceTests
         );
 
         // Act
-        var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250);
+        var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

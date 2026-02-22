@@ -46,7 +46,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[RssUrl];
         Assert.Equal(referenceDate, state.LastPublishDate);
@@ -99,8 +99,8 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
-        var results = await manager.CheckForNewPostsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+        var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(results);
         Assert.Equal("new", results[0].Title);
@@ -150,8 +150,8 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
-        var results = await manager.CheckForNewPostsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+        var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(results);
         mockAggregator.Verify(x => x.AddLatestUrlPost(RssUrl, It.Is<Post?>(p => p != null && p.Title == "old")), Times.Once);
@@ -186,7 +186,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         mockAggregator.Verify(x => x.AddUrlResponse(RssUrl, (int)HttpStatusCode.BadRequest), Times.Once);
     }
@@ -234,7 +234,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(manager.GetAllFeedData());
         mockLogger.Verify(
@@ -282,7 +282,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeUserUrl];
         Assert.True(state.IsYoutube);
@@ -354,7 +354,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -397,7 +397,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[fallbackUrl];
         Assert.False(state.IsYoutube);
@@ -440,7 +440,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeChannelUrl];
         Assert.True(state.IsYoutube);
@@ -477,7 +477,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(manager.GetAllFeedData());
         mockLogger.Verify(
@@ -529,7 +529,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[parserUrl];
         Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
@@ -570,7 +570,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeChannelUrl];
         Assert.True(state.IsYoutube);
@@ -619,7 +619,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeChannelUrl];
         Assert.True(state.IsYoutube);
@@ -684,7 +684,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[RssUrl];
         var handleFeedError = typeof(FeedManager).GetMethod("HandleFeedError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -729,7 +729,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[RssUrl];
         var handleFeedError = typeof(FeedManager).GetMethod("HandleFeedError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -819,7 +819,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeChannelQueryUrl];
         Assert.True(state.IsYoutube);
@@ -866,8 +866,8 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
-        var results = await manager.CheckForNewPostsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+        var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(results);
         mockAggregator.Verify(x => x.AddLatestUrlPost(RssUrl, null), Times.Once);
@@ -912,12 +912,12 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
         Assert.True(manager.GetAllFeedData().ContainsKey(url));
 
-        await manager.CheckForNewPostsAsync();
-        await manager.CheckForNewPostsAsync();
-        await manager.CheckForNewPostsAsync();
+        await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
+        await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
+        await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.True(manager.GetAllFeedData().ContainsKey(url));
     }
@@ -957,8 +957,8 @@ public class FeedManagerCoverageTests
             mockFilter.Object);
 
         // Act
-        await manager.InitializeUrlsAsync();
-        var result = await manager.CheckForNewPostsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1009,10 +1009,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1066,10 +1066,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1121,10 +1121,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1183,10 +1183,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1241,10 +1241,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1301,10 +1301,10 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1357,9 +1357,9 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -1411,9 +1411,9 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -1464,7 +1464,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeFeedUrl];
         Assert.True(state.IsYoutube);
@@ -1513,9 +1513,9 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -1568,9 +1568,9 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("yt-post", result[0].Title);
@@ -1623,7 +1623,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => manager.CheckForNewPostsAsync(cts.Token));
     }
@@ -1675,7 +1675,7 @@ public class FeedManagerCoverageTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => manager.CheckForNewPostsAsync(cts.Token));
     }
@@ -1774,7 +1774,7 @@ public class FeedManagerTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert - should log information about URL testing
         _mockLogger.Verify(
@@ -1812,7 +1812,7 @@ public class FeedManagerTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert - should validate only 2 URLs (1 RSS + 1 YouTube, empty ones filtered)
         // Note: Each URL may be called multiple times due to retry logic/fallback attempts
@@ -1853,7 +1853,7 @@ public class FeedManagerTests
             _mockFilterService.Object
         );
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         _mockHttpClient.Verify(
             x => x.GetAsyncWithFallback(youtubeFeedUrl, It.IsAny<CancellationToken>()),
@@ -1890,7 +1890,7 @@ public class FeedManagerTests
             _mockFilterService.Object
         );
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         _mockHttpClient.Verify(
             x => x.GetAsyncWithFallback(youtubeChannelUrl, It.IsAny<CancellationToken>()),
@@ -1915,7 +1915,7 @@ public class FeedManagerTests
         );
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
@@ -1954,7 +1954,7 @@ public class FeedManagerTests
         );
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert - Note: Filter service is only called during actual feed checking
         // when feeds are in the internal _feedStates. Since feeds are empty,
@@ -2139,7 +2139,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         _mockHttpClient.Verify(
@@ -2177,7 +2177,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert - should only call for the valid URL
         _mockHttpClient.Verify(
@@ -2215,7 +2215,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert - should log but not crash
         _mockAggregator.Verify(
@@ -2253,7 +2253,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         _mockAggregator.Verify(
@@ -2288,7 +2288,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         _mockHttpClient.Verify(
@@ -2326,7 +2326,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        var result = await manager.CheckForNewPostsAsync();
+        var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -2358,7 +2358,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.CheckForNewPostsAsync();
+        await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         _mockAggregator.Verify(x => x.SetNewPostCount(It.IsAny<int>()), Times.Once);
@@ -2467,7 +2467,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         _mockHttpClient.Verify(
@@ -2582,7 +2582,7 @@ public class FeedManagerExpandedTests
         );
 
         // Act & Assert - should not throw
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
     }
 
     #endregion
@@ -2641,7 +2641,7 @@ public class FeedManagerExpandedTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[youtubeUrl];
         Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
@@ -2693,7 +2693,7 @@ public class FeedManagerExpandedTests
             mockFilter.Object,
             mockStore.Object);
 
-        await manager.InitializeUrlsAsync();
+        await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
         var state = manager.GetAllFeedData()[rssUrl];
         Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));

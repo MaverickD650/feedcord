@@ -86,7 +86,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("\"username\":\"CustomBot\"", jsonString);
@@ -102,7 +102,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("FeedCord", jsonString);
@@ -118,7 +118,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Breaking News Title", jsonString);
@@ -134,7 +134,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Detailed description text", jsonString);
@@ -150,7 +150,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://example.com/article/123", jsonString);
@@ -166,7 +166,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("John Doe", jsonString);
@@ -182,7 +182,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://example.com/image.jpg", jsonString);
@@ -198,7 +198,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://fallback.example.com/default.jpg", jsonString);
@@ -214,7 +214,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://example.com/footer.png", jsonString);
@@ -230,7 +230,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("16711680", jsonString);
@@ -246,7 +246,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("02/20/2026", jsonString);  // MM/dd/yyyy format
@@ -295,7 +295,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildForumWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("forum-tag", jsonString);
@@ -311,7 +311,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildForumWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Short Title", jsonString);
@@ -328,7 +328,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildForumWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         // Parse JSON and check thread_name is exactly 99 characters
@@ -349,7 +349,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("# Test Post", jsonString);  // Markdown header
@@ -367,7 +367,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildForumWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("# Test Post", jsonString);
@@ -383,7 +383,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         using var jsonDoc = JsonDocument.Parse(jsonString);
@@ -402,7 +402,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Custom Author", jsonString);
@@ -419,7 +419,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://author.example.com", jsonString);
@@ -435,7 +435,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://example.com/author.png", jsonString);
@@ -451,7 +451,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("http://example.com/avatar.png", jsonString);
@@ -467,7 +467,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("breaking-news", jsonString);
@@ -483,7 +483,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert - verify it's valid JSON
         var jsonDoc = JsonDocument.Parse(jsonString);
@@ -503,7 +503,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildForumWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var jsonDoc = JsonDocument.Parse(jsonString);
@@ -524,7 +524,7 @@ public class DiscordPayloadServiceTests
 
         // Act
         var content = service.BuildPayloadWithPost(post);
-        var jsonString = await content.ReadAsStringAsync();
+        var jsonString = await content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var jsonDoc = JsonDocument.Parse(jsonString);

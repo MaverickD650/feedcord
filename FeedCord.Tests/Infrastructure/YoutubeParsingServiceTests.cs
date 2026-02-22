@@ -38,7 +38,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -76,7 +76,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(feedResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -94,7 +94,7 @@ namespace FeedCord.Tests.Infrastructure
 </html>";
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -114,7 +114,7 @@ namespace FeedCord.Tests.Infrastructure
 </html>";
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -130,7 +130,7 @@ namespace FeedCord.Tests.Infrastructure
             var input = "";
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(input);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(input, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -145,7 +145,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xml);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xml, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -170,7 +170,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -194,7 +194,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(completion.Task);
 
             // Act
-            var resultTask = _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var resultTask = _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
             await Task.Yield();
 
             completion.SetResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -232,7 +232,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -262,7 +262,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -296,7 +296,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -329,7 +329,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -361,7 +361,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -385,7 +385,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -406,7 +406,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -424,7 +424,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -440,7 +440,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -450,7 +450,7 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetRecentPost_WithEmptyXmlUrl_ReturnsNull()
         {
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed("");
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed("", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -474,7 +474,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromException<HttpResponseMessage?>(exception));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -498,7 +498,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -519,7 +519,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(result);
@@ -557,7 +557,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -591,7 +591,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
-            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);

@@ -13,7 +13,7 @@ public class LivenessHealthCheckTests
         var check = new LivenessHealthCheck();
         var context = new HealthCheckContext();
 
-        var result = await check.CheckHealthAsync(context);
+        var result = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }
@@ -29,7 +29,7 @@ public class ReadinessHealthCheckTests
         var check = new ReadinessHealthCheck(lifetime);
         var context = new HealthCheckContext();
 
-        var result = await check.CheckHealthAsync(context);
+        var result = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
     }
@@ -44,7 +44,7 @@ public class ReadinessHealthCheckTests
         var check = new ReadinessHealthCheck(lifetime);
         var context = new HealthCheckContext();
 
-        var result = await check.CheckHealthAsync(context);
+        var result = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }

@@ -37,12 +37,12 @@ namespace FeedCord.Tests.Infrastructure
             const string url = "https://example.com/feed";
 
             // Act - First call should try fallback
-            await client.GetAsyncWithFallback(url);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
             var firstCallAgents = new List<string>(requestedUserAgents);
             requestedUserAgents.Clear();
 
             // Second call should use cached value
-            await client.GetAsyncWithFallback(url);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotEmpty(firstCallAgents);
@@ -78,8 +78,8 @@ namespace FeedCord.Tests.Infrastructure
 
             const string url = "https://example.com/feed";
 
-            await client.GetAsyncWithFallback(url);
-            await client.GetAsyncWithFallback(url);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             Assert.True(requestCount >= 3);
             Assert.Contains(observedUserAgents.Skip(2), ua => ua.Contains("Cached-UA"));
@@ -114,8 +114,8 @@ namespace FeedCord.Tests.Infrastructure
 
             const string url = "https://example.com/feed";
 
-            var first = await client.GetAsyncWithFallback(url);
-            var second = await client.GetAsyncWithFallback(url);
+            var first = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+            var second = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             Assert.NotNull(first);
             Assert.NotNull(second);
@@ -152,8 +152,8 @@ namespace FeedCord.Tests.Infrastructure
 
             const string url = "https://example.com/feed";
 
-            var first = await client.GetAsyncWithFallback(url);
-            var second = await client.GetAsyncWithFallback(url);
+            var first = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+            var second = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             Assert.NotNull(first);
             Assert.NotNull(second);
@@ -205,8 +205,8 @@ namespace FeedCord.Tests.Infrastructure
 
             const string url = "https://example.com/feed";
 
-            var first = await client.GetAsyncWithFallback(url);
-            var second = await client.GetAsyncWithFallback(url);
+            var first = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+            var second = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             Assert.NotNull(first);
             Assert.NotNull(second);
@@ -252,7 +252,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(5, 5);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Bad-UA-1", "Bad-UA-2" });
 
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -431,7 +431,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(response);
@@ -456,7 +456,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(response);
@@ -501,7 +501,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Null(response);
@@ -532,7 +532,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1", "UA-2" });
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(response);
@@ -562,7 +562,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(10, 10);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1" });
 
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -588,7 +588,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(10, 10);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1", "UA-2" });
 
-            var response = await client.GetAsyncWithFallback("https://example.com");
+            var response = await client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
@@ -622,7 +622,7 @@ namespace FeedCord.Tests.Infrastructure
             var content = new StringContent("test");
 
             // Act
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(1, callCount);
@@ -650,7 +650,7 @@ namespace FeedCord.Tests.Infrastructure
             var forumContent = new StringContent("{\"kind\":\"forum\"}");
             var textContent = new StringContent("{\"kind\":\"text\"}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true, TestContext.Current.CancellationToken);
 
             Assert.Equal("{\"kind\":\"forum\"}", sentBody);
         }
@@ -679,7 +679,7 @@ namespace FeedCord.Tests.Infrastructure
             var content = new StringContent("test");
 
             // Act
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(2, callCount);
@@ -713,7 +713,7 @@ namespace FeedCord.Tests.Infrastructure
             var forumContent = new StringContent("{\"kind\":\"forum\"}");
             var textContent = new StringContent("{\"kind\":\"text\"}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true, TestContext.Current.CancellationToken);
 
             Assert.Equal(2, callCount);
             Assert.Equal(2, sentBodies.Count);
@@ -747,7 +747,7 @@ namespace FeedCord.Tests.Infrastructure
             var content = new StringContent("{\"message\":\"hello\"}");
 
             // Act
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(2, callCount);
@@ -783,7 +783,7 @@ namespace FeedCord.Tests.Infrastructure
             };
             var textContent = new StringContent("{\"value\":2}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true, TestContext.Current.CancellationToken);
 
             Assert.Equal("utf-8", observedCharset);
         }
@@ -815,7 +815,7 @@ namespace FeedCord.Tests.Infrastructure
             forumContent.Headers.TryAddWithoutValidation("X-Request-Id", "abc-123");
             var textContent = new StringContent("{\"payload\":2}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true, TestContext.Current.CancellationToken);
 
             Assert.Equal("abc-123", requestIdHeader);
         }
@@ -845,7 +845,7 @@ namespace FeedCord.Tests.Infrastructure
             forumContent.Headers.ContentType = null;
             var textContent = new StringContent("{\"payload\":2}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true, TestContext.Current.CancellationToken);
 
             Assert.Equal("application/json", observedMediaType);
             Assert.Equal("utf-8", observedCharset);
@@ -872,8 +872,8 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, postMinIntervalSeconds: 0);
             var content = new StringContent("{}");
 
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             Assert.Equal(2, postTimes.Count);
             var timeBetweenPosts = postTimes[1] - postTimes[0];
@@ -899,12 +899,12 @@ namespace FeedCord.Tests.Infrastructure
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             // Act - First POST
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             var firstTime = sw.ElapsedMilliseconds;
             sw.Restart();
 
             // Second POST should enforce 2-second delay
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             var secondTime = sw.ElapsedMilliseconds;
 
             // Assert - Second request should have delay (at least 1.5 seconds to account for test timing variations)
@@ -944,7 +944,7 @@ namespace FeedCord.Tests.Infrastructure
 
             // Act - Fire 4 concurrent requests
             var tasks = Enumerable.Range(0, 4)
-                .Select(_ => client.GetAsyncWithFallback("https://example.com"))
+                .Select(_ => client.GetAsyncWithFallback("https://example.com", TestContext.Current.CancellationToken))
                 .ToList();
 
             await Task.WhenAll(tasks);
@@ -1007,7 +1007,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("http://example.com");
+            var response = await client.GetAsyncWithFallback("http://example.com", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(response);
@@ -1038,7 +1038,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(1, 1);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "My-Custom-UA" });
 
-            var response = await client.GetAsyncWithFallback("http://example.com");
+            var response = await client.GetAsyncWithFallback("http://example.com", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
@@ -1069,7 +1069,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(1, 1);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
-            var response = await client.GetAsyncWithFallback("http://example.com");
+            var response = await client.GetAsyncWithFallback("http://example.com", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
@@ -1115,7 +1115,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(response);
@@ -1164,7 +1164,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(1, 1);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Bad-UA-1" });
 
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -1209,7 +1209,7 @@ namespace FeedCord.Tests.Infrastructure
             var throttle = new SemaphoreSlim(1, 1);
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Bad-UA-1" });
 
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             Assert.NotNull(response);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -1239,7 +1239,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             // Assert - should return original failed response, not throw
             Assert.NotNull(response);
@@ -1283,7 +1283,7 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act
-            var response = await client.GetAsyncWithFallback("https://example.com/feed");
+            var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
             // Assert - should return original response when robots.txt is empty
             Assert.NotNull(response);
@@ -1327,10 +1327,10 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
 
             // Act - First request
-            var response1 = await client.GetAsyncWithFallback(url);
+            var response1 = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             // Second request should use cached user agent
-            var response2 = await client.GetAsyncWithFallback(url);
+            var response2 = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(response1);
@@ -1369,8 +1369,8 @@ namespace FeedCord.Tests.Infrastructure
             var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { customUA });
 
             // Act - Make requests that should reuse default cached user agent
-            await client.GetAsyncWithFallback(url);
-            await client.GetAsyncWithFallback(url);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+            await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
             // Assert - Should have used user agent at least once
             Assert.True(userAgentAttempts.Count >= 0, "User agent tracking completed");
@@ -1393,7 +1393,7 @@ namespace FeedCord.Tests.Infrastructure
                 .Returns(async (HttpRequestMessage _, CancellationToken __) =>
                 {
                     postTimes.Add(DateTime.UtcNow);
-                    await Task.Delay(10); // Small delay for execution
+                    await Task.Delay(10, TestContext.Current.CancellationToken); // Small delay for execution
                     return new HttpResponseMessage(System.Net.HttpStatusCode.NoContent);
                 });
 
@@ -1404,11 +1404,11 @@ namespace FeedCord.Tests.Infrastructure
 
             // Act
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             var firstDuration = sw.ElapsedMilliseconds;
 
             sw.Restart();
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             var secondDuration = sw.ElapsedMilliseconds;
 
             // Assert - Total time between starts should be at least 2 seconds
@@ -1439,8 +1439,8 @@ namespace FeedCord.Tests.Infrastructure
             var content = new StringContent("{}");
 
             // Act - Two sequential posts to same channel
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(2, postTimes.Count);
@@ -1513,7 +1513,7 @@ namespace FeedCord.Tests.Infrastructure
                 await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, canceledCts.Token));
 
             // Assert - if throttle wasn't released in finally, this would deadlock or timeout
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             Assert.Equal(2, callCount);
         }
 
@@ -1547,7 +1547,7 @@ namespace FeedCord.Tests.Infrastructure
             var content = new StringContent("{}");
 
             // Act
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
 
             // Assert - Should have made 2 post attempts
             Assert.Equal(2, callCount);
@@ -1593,7 +1593,7 @@ namespace FeedCord.Tests.Infrastructure
             var textContent = new StringContent("{}");
 
             // Act
-            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, false);
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, false, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(2, callCount);
@@ -1639,7 +1639,7 @@ namespace FeedCord.Tests.Infrastructure
             // so we just verify the structure is correct
             try
             {
-                await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+                await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false, TestContext.Current.CancellationToken);
             }
             catch (HttpRequestException)
             {
@@ -1682,7 +1682,7 @@ namespace FeedCord.Tests.Infrastructure
             var urlWithSpecialChars = "https://example.com/feed?category=tech&lang=en-US&sort=date%20desc";
 
             // Act
-            var response = await client.GetAsyncWithFallback(urlWithSpecialChars);
+            var response = await client.GetAsyncWithFallback(urlWithSpecialChars, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(response);
@@ -1715,7 +1715,7 @@ namespace FeedCord.Tests.Infrastructure
 
             foreach (var url in urls)
             {
-                var response = await client.GetAsyncWithFallback(url);
+                var response = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
                 Assert.NotNull(response);
             }
         }
@@ -1741,7 +1741,7 @@ namespace FeedCord.Tests.Infrastructure
                     var currentMax = Math.Max(maxConcurrentRequests, activeRequests);
                     Interlocked.Exchange(ref maxConcurrentRequests, currentMax);
 
-                    await Task.Delay(50);
+                    await Task.Delay(50, TestContext.Current.CancellationToken);
 
                     Interlocked.Decrement(ref activeRequests);
                     return new HttpResponseMessage(System.Net.HttpStatusCode.OK);

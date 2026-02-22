@@ -22,19 +22,19 @@ public class StartupObservabilityTests
             }
         };
 
-        await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config));
+        await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config), TestContext.Current.CancellationToken);
 
         IHost? host = null;
         try
         {
             host = Startup.CreateApplication(new[] { tempConfigPath });
-            await host.StartAsync();
+            await host.StartAsync(TestContext.Current.CancellationToken);
 
             using var httpClient = new HttpClient { BaseAddress = new Uri(fallbackUrls) };
 
-            var liveness = await httpClient.GetAsync("/health/live");
-            var readiness = await httpClient.GetAsync("/health/ready");
-            var metrics = await httpClient.GetAsync("/metrics");
+            var liveness = await httpClient.GetAsync("/health/live", TestContext.Current.CancellationToken);
+            var readiness = await httpClient.GetAsync("/health/ready", TestContext.Current.CancellationToken);
+            var metrics = await httpClient.GetAsync("/metrics", TestContext.Current.CancellationToken);
 
             Assert.True(liveness.IsSuccessStatusCode, "Default liveness endpoint should return success.");
             Assert.True(readiness.IsSuccessStatusCode, "Default readiness endpoint should return success.");
@@ -44,7 +44,7 @@ public class StartupObservabilityTests
         {
             if (host is not null)
             {
-                await host.StopAsync();
+                await host.StopAsync(TestContext.Current.CancellationToken);
                 host.Dispose();
             }
 
@@ -74,20 +74,20 @@ public class StartupObservabilityTests
             }
         };
 
-        await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config));
+        await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config), TestContext.Current.CancellationToken);
 
         IHost? host = null;
         try
         {
             host = Startup.CreateApplication(new[] { tempConfigPath });
 
-            await host.StartAsync();
+            await host.StartAsync(TestContext.Current.CancellationToken);
 
             using var httpClient = new HttpClient { BaseAddress = new Uri(observabilityUrls) };
 
-            var liveness = await httpClient.GetAsync("/health/live-test");
-            var readiness = await httpClient.GetAsync("/health/ready-test");
-            var metrics = await httpClient.GetAsync("/metrics-test");
+            var liveness = await httpClient.GetAsync("/health/live-test", TestContext.Current.CancellationToken);
+            var readiness = await httpClient.GetAsync("/health/ready-test", TestContext.Current.CancellationToken);
+            var metrics = await httpClient.GetAsync("/metrics-test", TestContext.Current.CancellationToken);
 
             Assert.True(liveness.IsSuccessStatusCode, "Liveness endpoint should return success.");
             Assert.True(readiness.IsSuccessStatusCode, "Readiness endpoint should return success.");
@@ -97,7 +97,7 @@ public class StartupObservabilityTests
         {
             if (host is not null)
             {
-                await host.StopAsync();
+                await host.StopAsync(TestContext.Current.CancellationToken);
                 host.Dispose();
             }
 
@@ -124,20 +124,20 @@ Observability:
   ReadinessPath: /health/ready-yaml
 """;
 
-        await File.WriteAllTextAsync(tempConfigPath, yamlConfig);
+        await File.WriteAllTextAsync(tempConfigPath, yamlConfig, TestContext.Current.CancellationToken);
 
         IHost? host = null;
         try
         {
             host = Startup.CreateApplication(new[] { tempConfigPath });
 
-            await host.StartAsync();
+            await host.StartAsync(TestContext.Current.CancellationToken);
 
             using var httpClient = new HttpClient { BaseAddress = new Uri(observabilityUrls) };
 
-            var liveness = await httpClient.GetAsync("/health/live-yaml");
-            var readiness = await httpClient.GetAsync("/health/ready-yaml");
-            var metrics = await httpClient.GetAsync("/metrics-yaml");
+            var liveness = await httpClient.GetAsync("/health/live-yaml", TestContext.Current.CancellationToken);
+            var readiness = await httpClient.GetAsync("/health/ready-yaml", TestContext.Current.CancellationToken);
+            var metrics = await httpClient.GetAsync("/metrics-yaml", TestContext.Current.CancellationToken);
 
             Assert.True(liveness.IsSuccessStatusCode, "YAML liveness endpoint should return success.");
             Assert.True(readiness.IsSuccessStatusCode, "YAML readiness endpoint should return success.");
@@ -147,7 +147,7 @@ Observability:
         {
             if (host is not null)
             {
-                await host.StopAsync();
+                await host.StopAsync(TestContext.Current.CancellationToken);
                 host.Dispose();
             }
 

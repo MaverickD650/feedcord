@@ -208,7 +208,7 @@ public class FeedWorkerTests
 
         // Act
         var startTask = worker.StartAsync(cts.Token);
-        await Task.Delay(200); // Allow background loop to run
+        await Task.Delay(200, TestContext.Current.CancellationToken); // Allow background loop to run
         cts.Cancel();
         try { await startTask; } catch { /* ignore cancellation */ }
         mockFeedManager.Verify(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
@@ -415,7 +415,7 @@ public class FeedWorkerTests
         try
         {
             await worker.StartAsync(cts.Token);
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
             cts.Cancel();
         }
         catch (OperationCanceledException) { /* expected */ }
@@ -473,7 +473,7 @@ public class FeedWorkerTests
         try
         {
             await worker.StartAsync(cts.Token);
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
             cts.Cancel();
         }
         catch (OperationCanceledException) { /* expected */ }
@@ -523,7 +523,7 @@ public class FeedWorkerTests
         try
         {
             await worker.StartAsync(cts.Token);
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
             cts.Cancel();
         }
         catch (OperationCanceledException) { /* expected */ }
@@ -587,7 +587,7 @@ public class FeedWorkerTests
         var workerTokenSource = new CancellationTokenSource();
         var runTask = worker.StartAsync(workerTokenSource.Token);
 
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         appStoppingSource.Cancel();
         workerTokenSource.Cancel();
 
@@ -639,7 +639,7 @@ public class FeedWorkerTests
         var workerTokenSource = new CancellationTokenSource();
         var runTask = worker.StartAsync(workerTokenSource.Token);
 
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         appStoppingSource.Cancel();
         workerTokenSource.Cancel();
 
@@ -700,7 +700,7 @@ public class FeedWorkerTests
         try
         {
             await worker.StartAsync(cts.Token);
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
             cts.Cancel();
         }
         catch (OperationCanceledException) { /* expected */ }

@@ -18,7 +18,7 @@ public class BatchLoggerTests
                 return;
             }
 
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
     }
 

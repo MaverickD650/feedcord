@@ -45,7 +45,7 @@ public class DiscordNotifierTests
 
         var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
 
-        await notifier.SendNotificationsAsync(new List<Post> { post });
+        await notifier.SendNotificationsAsync(new List<Post> { post }, TestContext.Current.CancellationToken);
 
         mockPayloadService.Verify(x => x.BuildForumWithPost(post), Times.Once);
         mockPayloadService.Verify(x => x.BuildPayloadWithPost(post), Times.Once);
@@ -73,7 +73,7 @@ public class DiscordNotifierTests
         var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
 
         // Act & Assert
-        await notifier.SendNotificationsAsync(posts);
+        await notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken);
         mockHttpClient.Verify(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -97,7 +97,7 @@ public class DiscordNotifierTests
         var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
 
         // Act
-        var exception = await Record.ExceptionAsync(() => notifier.SendNotificationsAsync(posts));
+        var exception = await Record.ExceptionAsync(() => notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Null(exception);
@@ -127,7 +127,7 @@ public class DiscordNotifierTests
         var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
         var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => notifier.SendNotificationsAsync(posts));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class DiscordNotifierTests
         var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object, mockLogger.Object);
         var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
 
-        await notifier.SendNotificationsAsync(posts);
+        await notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken);
 
         mockLogger.Verify(
             x => x.Log(
