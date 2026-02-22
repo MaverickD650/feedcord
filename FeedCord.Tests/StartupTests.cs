@@ -305,7 +305,7 @@ namespace FeedCord.Tests
             var args = Array.Empty<string>();
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("config/appsettings.json", selectedPath);
@@ -318,7 +318,7 @@ namespace FeedCord.Tests
             var args = new[] { "custom/path.json" };
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("custom/path.json", selectedPath);
@@ -331,7 +331,7 @@ namespace FeedCord.Tests
             var args = new[] { "arg1", "arg2", "arg3" };
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("arg1", selectedPath);
@@ -342,7 +342,7 @@ namespace FeedCord.Tests
         public void ConfigPath_WithVariousArguments_SelectsCorrectPath(string[] args)
         {
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             var expected = args.Length >= 1 ? args[0] : "config/appsettings.json";
@@ -363,11 +363,6 @@ namespace FeedCord.Tests
         #endregion
 
         #region Helper Method
-
-        private static string SelectConfigPath(string[] args)
-        {
-            return args.Length >= 1 ? args[0] : "config/appsettings.json";
-        }
 
         #endregion
     }

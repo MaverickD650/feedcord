@@ -256,7 +256,7 @@ namespace FeedCord
                 return;
             }
 
-            var errors = string.Join("\n", validationResult.Failures ?? Array.Empty<string>());
+            var errors = string.Join("\n", validationResult.Failures!);
             throw new InvalidOperationException($"Invalid config entry: {errors}");
         }
 
@@ -281,7 +281,7 @@ namespace FeedCord
                 return options;
             }
 
-            var errors = string.Join("\n", validationResult.Failures ?? Array.Empty<string>());
+            var errors = string.Join("\n", validationResult.Failures!);
             throw new InvalidOperationException($"{validationErrorPrefix}: {errors}");
         }
     }
