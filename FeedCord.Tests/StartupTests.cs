@@ -1,8 +1,6 @@
 using Xunit;
 using FeedCord.Common;
 using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using FeedCord.Helpers;
 using FeedCord.Services.Interfaces;
 using FeedCord.Core.Interfaces;
@@ -307,7 +305,7 @@ namespace FeedCord.Tests
             var args = Array.Empty<string>();
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("config/appsettings.json", selectedPath);
@@ -320,7 +318,7 @@ namespace FeedCord.Tests
             var args = new[] { "custom/path.json" };
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("custom/path.json", selectedPath);
@@ -333,7 +331,7 @@ namespace FeedCord.Tests
             var args = new[] { "arg1", "arg2", "arg3" };
 
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             Assert.Equal("arg1", selectedPath);
@@ -344,7 +342,7 @@ namespace FeedCord.Tests
         public void ConfigPath_WithVariousArguments_SelectsCorrectPath(string[] args)
         {
             // Act
-            var selectedPath = SelectConfigPath(args);
+            var selectedPath = Startup.SelectConfigPath(args);
 
             // Assert
             var expected = args.Length >= 1 ? args[0] : "config/appsettings.json";
@@ -366,11 +364,6 @@ namespace FeedCord.Tests
 
         #region Helper Method
 
-        private static string SelectConfigPath(string[] args)
-        {
-            return args.Length >= 1 ? args[0] : "config/appsettings.json";
-        }
-
         #endregion
     }
 
@@ -388,7 +381,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<IHttpClientFactory>();
@@ -440,34 +433,31 @@ namespace FeedCord.Tests
             };
         }
 
-        private static object? InvokeStartupPrivateMethod(string methodName, params object[] parameters)
-        {
-            var method = typeof(Startup).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
-            Assert.NotNull(method);
-
-            try
-            {
-                return method!.Invoke(null, parameters);
-            }
-            catch (TargetInvocationException ex) when (ex.InnerException is not null)
-            {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                throw;
-            }
-        }
-
         #endregion
     }
 
     public class StartupPrivateMethodCoverageTests
     {
         [Fact]
-        public void CreateHostBuilder_WithArgs_ReturnsHostBuilder()
+        public void CreateApplication_WithArgs_ReturnsHost()
         {
-            var result = InvokeStartupPrivateMethod("CreateHostBuilder", (object)Array.Empty<string>());
+            var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-startup-create-app-{Guid.NewGuid():N}.json");
+            File.WriteAllText(tempConfigPath, "{\"Instances\":[]}");
+
+            var result = Startup.CreateApplication(new[] { tempConfigPath });
 
             Assert.NotNull(result);
-            Assert.IsAssignableFrom<IHostBuilder>(result);
+            Assert.IsAssignableFrom<IHost>(result);
+
+            if (result is IHost host)
+            {
+                host.Dispose();
+            }
+
+            if (File.Exists(tempConfigPath))
+            {
+                File.Delete(tempConfigPath);
+            }
         }
 
         [Fact]
@@ -476,7 +466,7 @@ namespace FeedCord.Tests
             var context = new HostBuilderContext(new Dictionary<object, object>());
             var builder = new ConfigurationBuilder();
 
-            InvokeStartupPrivateMethod("SetupConfiguration", context, builder, new[] { "custom-config.json" });
+            Startup.SetupConfiguration(context, builder, new[] { "custom-config.json" });
 
             var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
             Assert.Equal("custom-config.json", jsonSource.Path);
@@ -488,7 +478,7 @@ namespace FeedCord.Tests
             var context = new HostBuilderContext(new Dictionary<object, object>());
             var builder = new ConfigurationBuilder();
 
-            InvokeStartupPrivateMethod("SetupConfiguration", context, builder, new[] { "one", "two" });
+            Startup.SetupConfiguration(context, builder, new[] { "one", "two" });
 
             var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
             Assert.Equal("one", jsonSource.Path);
@@ -500,7 +490,7 @@ namespace FeedCord.Tests
             var loggingBuilder = new TestLoggingBuilder();
             var context = new HostBuilderContext(new Dictionary<object, object>());
 
-            InvokeStartupPrivateMethod("SetupLogging", context, loggingBuilder);
+            Startup.SetupLogging(context, loggingBuilder);
 
             using var provider = loggingBuilder.Services.BuildServiceProvider();
             var consoleOptions = provider.GetRequiredService<IOptions<ConsoleLoggerOptions>>().Value;
@@ -526,7 +516,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("SetupServices", context, services));
+                Startup.SetupServices(context, services));
 
             Assert.Contains("ConcurrentRequests", exception.Message);
         }
@@ -541,7 +531,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var semaphore = provider.GetRequiredService<SemaphoreSlim>();
@@ -561,7 +551,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var semaphore = provider.GetRequiredService<SemaphoreSlim>();
@@ -587,7 +577,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             Assert.Equal(1, services.Count(sd => sd.ServiceType == typeof(IHostedService)));
         }
@@ -609,7 +599,7 @@ namespace FeedCord.Tests
             };
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("ValidateConfiguration", invalidConfig));
+                Startup.ValidateConfiguration(invalidConfig));
 
             Assert.Contains("Invalid config entry", exception.Message);
         }
@@ -628,7 +618,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("SetupServices", context, services));
+                Startup.SetupServices(context, services));
 
             Assert.Contains("Invalid HTTP configuration", exception.Message);
             Assert.Contains("TimeoutSeconds", exception.Message);
@@ -648,7 +638,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("SetupServices", context, services));
+                Startup.SetupServices(context, services));
 
             Assert.Contains("Invalid HTTP configuration", exception.Message);
             Assert.Contains("PostMinIntervalSeconds", exception.Message);
@@ -668,7 +658,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("SetupServices", context, services));
+                Startup.SetupServices(context, services));
 
             Assert.Contains("Invalid observability configuration", exception.Message);
             Assert.Contains("MetricsPath", exception.Message);
@@ -688,7 +678,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                InvokeStartupPrivateMethod("SetupServices", context, services));
+                Startup.SetupServices(context, services));
 
             Assert.Contains("Invalid observability configuration", exception.Message);
             Assert.Contains("LivenessPath", exception.Message);
@@ -711,7 +701,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             // This should not throw and should log that ConcurrentRequests is set
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var semaphore = provider.GetRequiredService<SemaphoreSlim>();
@@ -730,7 +720,7 @@ namespace FeedCord.Tests
             var services = new ServiceCollection();
 
             // With default value of 20, the logging should be skipped
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var semaphore = provider.GetRequiredService<SemaphoreSlim>();
@@ -748,7 +738,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var batchLogger = provider.GetRequiredService<IBatchLogger>();
@@ -767,7 +757,7 @@ namespace FeedCord.Tests
 
             var services = new ServiceCollection();
 
-            InvokeStartupPrivateMethod("SetupServices", context, services);
+            Startup.SetupServices(context, services);
 
             using var provider = services.BuildServiceProvider();
             var customHttpClient = provider.GetRequiredService<ICustomHttpClient>();
@@ -788,22 +778,6 @@ namespace FeedCord.Tests
             };
         }
 
-        private static object? InvokeStartupPrivateMethod(string methodName, params object[] parameters)
-        {
-            var method = typeof(Startup).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
-            Assert.NotNull(method);
-
-            try
-            {
-                return method!.Invoke(null, parameters);
-            }
-            catch (TargetInvocationException ex) when (ex.InnerException is not null)
-            {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                throw;
-            }
-        }
-
         private sealed class TestLoggingBuilder : ILoggingBuilder
         {
             public IServiceCollection Services { get; } = new ServiceCollection();
@@ -821,20 +795,8 @@ namespace FeedCord.Tests
         [Fact]
         public void Initialize_BuildsAndRunsHost_UsingInjectedDelegates()
         {
-            var buildHostProperty = typeof(Startup).GetProperty(
-                "BuildHost",
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
-            );
-            var runHostProperty = typeof(Startup).GetProperty(
-                "RunHost",
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
-            );
-
-            Assert.NotNull(buildHostProperty);
-            Assert.NotNull(runHostProperty);
-
-            var originalBuildHost = (Func<string[], IHost>)buildHostProperty!.GetValue(null)!;
-            var originalRunHost = (Action<IHost>)runHostProperty!.GetValue(null)!;
+            var originalBuildHost = Startup.BuildHost;
+            var originalRunHost = Startup.RunHost;
 
             var expectedHost = new Moq.Mock<IHost>(Moq.MockBehavior.Strict).Object;
             string[]? capturedArgs = null;
@@ -842,13 +804,13 @@ namespace FeedCord.Tests
 
             try
             {
-                buildHostProperty.SetValue(null, (Func<string[], IHost>)(args =>
+                Startup.BuildHost = args =>
                 {
                     capturedArgs = args;
                     return expectedHost;
-                }));
+                };
 
-                runHostProperty.SetValue(null, (Action<IHost>)(host => capturedHost = host));
+                Startup.RunHost = host => capturedHost = host;
 
                 var args = new[] { "config/appsettings.json" };
                 Startup.Initialize(args);
@@ -858,8 +820,8 @@ namespace FeedCord.Tests
             }
             finally
             {
-                buildHostProperty.SetValue(null, originalBuildHost);
-                runHostProperty.SetValue(null, originalRunHost);
+                Startup.BuildHost = originalBuildHost;
+                Startup.RunHost = originalRunHost;
             }
         }
     }

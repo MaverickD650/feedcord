@@ -1,7 +1,4 @@
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -10,7 +7,7 @@ namespace FeedCord.Tests;
 public class StartupObservabilityTests
 {
     [Fact]
-    public async Task CreateHostBuilder_WithoutObservabilitySection_UsesDefaultObservabilityEndpoints()
+    public async Task CreateApplication_WithoutObservabilityPaths_UsesDefaultObservabilityEndpoints()
     {
         var port = GetFreeTcpPort();
         var fallbackUrls = $"http://127.0.0.1:{port}";
@@ -18,7 +15,11 @@ public class StartupObservabilityTests
 
         var config = new
         {
-            Instances = Array.Empty<object>()
+            Instances = Array.Empty<object>(),
+            Observability = new
+            {
+                Urls = fallbackUrls,
+            }
         };
 
         await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config));
@@ -26,10 +27,7 @@ public class StartupObservabilityTests
         IHost? host = null;
         try
         {
-            var hostBuilder = (IHostBuilder)InvokeStartupPrivateMethod("CreateHostBuilder", (object)new[] { tempConfigPath })!;
-            hostBuilder.ConfigureWebHost(webBuilder => webBuilder.UseUrls(fallbackUrls));
-
-            host = hostBuilder.Build();
+            host = Startup.CreateApplication(new[] { tempConfigPath });
             await host.StartAsync();
 
             using var httpClient = new HttpClient { BaseAddress = new Uri(fallbackUrls) };
@@ -58,7 +56,7 @@ public class StartupObservabilityTests
     }
 
     [Fact]
-    public async Task CreateHostBuilder_WithObservabilityEndpoints_ExposesMetricsAndHealthPaths()
+    public async Task CreateApplication_WithObservabilityEndpoints_ExposesMetricsAndHealthPaths()
     {
         var port = GetFreeTcpPort();
         var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-observability-{Guid.NewGuid():N}.json");
@@ -81,8 +79,7 @@ public class StartupObservabilityTests
         IHost? host = null;
         try
         {
-            var hostBuilder = (IHostBuilder)InvokeStartupPrivateMethod("CreateHostBuilder", (object)new[] { tempConfigPath })!;
-            host = hostBuilder.Build();
+            host = Startup.CreateApplication(new[] { tempConfigPath });
 
             await host.StartAsync();
 
@@ -108,22 +105,6 @@ public class StartupObservabilityTests
             {
                 File.Delete(tempConfigPath);
             }
-        }
-    }
-
-    private static object? InvokeStartupPrivateMethod(string methodName, params object[] parameters)
-    {
-        var method = typeof(Startup).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.NotNull(method);
-
-        try
-        {
-            return method!.Invoke(null, parameters);
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is not null)
-        {
-            ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-            throw;
         }
     }
 
