@@ -12,23 +12,21 @@ using FeedCord.Services.Interfaces;
 using FeedCord.Infrastructure.Parsers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
 using System.Net;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 
 namespace FeedCord
 {
     public class Startup
     {
-        internal static Func<string[], IHost> BuildHost { get; set; } = args => CreateHostBuilder(args).Build();
+        internal static Func<string[], IHost> BuildHost { get; set; } = CreateApplication;
         internal static Action<IHost> RunHost { get; set; } = host => host.Run();
 
         public static void Initialize(string[] args)
@@ -37,76 +35,90 @@ namespace FeedCord
             RunHost(host);
         }
 
-        private static IHostBuilder CreateHostBuilder(string[] args)
+        internal static IHost CreateApplication(string[] args)
         {
-            return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((ctx, builder) =>
-                {
-                    SetupConfiguration(ctx, builder, args);
-                })
-                .ConfigureLogging(SetupLogging)
-                .ConfigureWebHostDefaults(ConfigureWebHost)
-                .ConfigureServices(SetupServices);
+            var builder = WebApplication.CreateBuilder(args);
+            SetupConfiguration(builder.Configuration, args);
+
+            var hostBuilderContext = CreateHostBuilderContext(builder.Configuration);
+            SetupLogging(hostBuilderContext, builder.Logging);
+            SetupServices(hostBuilderContext, builder.Services);
+            ConfigureObservability(builder);
+
+            var app = builder.Build();
+            MapObservabilityEndpoints(app);
+
+            return app;
         }
 
-        private static void ConfigureWebHost(IWebHostBuilder webBuilder)
+        internal static HostBuilderContext CreateHostBuilderContext(IConfiguration configuration)
         {
-            webBuilder.ConfigureServices((ctx, services) =>
+            return new HostBuilderContext(new Dictionary<object, object>())
             {
-                var observabilityOptions =
-                    ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
-                    new ObservabilityOptions();
+                Configuration = configuration
+            };
+        }
 
-                webBuilder.UseUrls(observabilityOptions.Urls);
+        private static void ConfigureObservability(WebApplicationBuilder builder)
+        {
+            var observabilityOptions =
+                builder.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
+                new ObservabilityOptions();
 
-                services.AddHealthChecks()
-                    .AddCheck<LivenessHealthCheck>("live", tags: new[] { "live" })
-                    .AddCheck<ReadinessHealthCheck>("ready", tags: new[] { "ready" });
+            builder.WebHost.UseUrls(observabilityOptions.Urls);
 
-                services.AddOpenTelemetry()
-                    .WithMetrics(metrics =>
-                    {
-                        metrics
-                            .AddRuntimeInstrumentation()
-                            .AddAspNetCoreInstrumentation()
-                            .AddHttpClientInstrumentation()
-                            .AddPrometheusExporter();
-                    });
-            });
+            builder.Services.AddHealthChecks()
+                .AddCheck<LivenessHealthCheck>("live", tags: new[] { "live" })
+                .AddCheck<ReadinessHealthCheck>("ready", tags: new[] { "ready" });
 
-            webBuilder.Configure((ctx, app) =>
-            {
-                var observabilityOptions =
-                    ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
-                    new ObservabilityOptions();
-
-                app.UseRouting();
-
-                app.UseEndpoints(endpoints =>
+            builder.Services.AddOpenTelemetry()
+                .WithMetrics(metrics =>
                 {
-                    endpoints.MapHealthChecks(observabilityOptions.LivenessPath, new HealthCheckOptions
-                    {
-                        Predicate = check => check.Tags.Contains("live")
-                    });
-
-                    endpoints.MapHealthChecks(observabilityOptions.ReadinessPath, new HealthCheckOptions
-                    {
-                        Predicate = check => check.Tags.Contains("ready")
-                    });
-
-                    endpoints.MapPrometheusScrapingEndpoint(observabilityOptions.MetricsPath);
+                    metrics
+                        .AddRuntimeInstrumentation()
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddPrometheusExporter();
                 });
-            });
         }
 
-        private static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
+        private static void MapObservabilityEndpoints(WebApplication app)
+        {
+            var observabilityOptions =
+                app.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
+                new ObservabilityOptions();
+
+            app.MapHealthChecks(observabilityOptions.LivenessPath, new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("live")
+            });
+
+            app.MapHealthChecks(observabilityOptions.ReadinessPath, new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("ready")
+            });
+
+            app.MapPrometheusScrapingEndpoint(observabilityOptions.MetricsPath);
+        }
+
+        internal static void SetupConfiguration(ConfigurationManager builder, string[] args)
         {
             builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
-            builder.AddJsonFile(args.Length >= 1 ? args[0] : "config/appsettings.json", optional: false,
-                reloadOnChange: true);
+            builder.AddJsonFile(SelectConfigPath(args), optional: false, reloadOnChange: true);
         }
 
-        private static void SetupLogging(HostBuilderContext ctx, ILoggingBuilder logging)
+        internal static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
+        {
+            builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
+            builder.AddJsonFile(SelectConfigPath(args), optional: false, reloadOnChange: true);
+        }
+
+        internal static string SelectConfigPath(string[] args)
+        {
+            return args.Length >= 1 ? args[0] : "config/appsettings.json";
+        }
+
+        internal static void SetupLogging(HostBuilderContext ctx, ILoggingBuilder logging)
         {
             logging.ClearProviders();
             logging.AddConsole(options => { options.FormatterName = "customlogsformatter"; })
@@ -118,42 +130,28 @@ namespace FeedCord
             logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
         }
 
-        private static void SetupServices(HostBuilderContext ctx, IServiceCollection services)
+        internal static void SetupServices(HostBuilderContext ctx, IServiceCollection services)
         {
             using var startupLoggerFactory = LoggerFactory.Create(logging => SetupLogging(ctx, logging));
             var startupLogger = startupLoggerFactory.CreateLogger<Startup>();
 
-            var appOptions = ctx.Configuration.GetSection(AppOptions.SectionName).Get<AppOptions>() ?? new AppOptions();
+            var appOptions = GetValidatedOptions<AppOptions>(
+                services,
+                ctx.Configuration,
+                AppOptions.SectionName,
+                "Invalid app configuration");
 
-            var appOptionsContext = new ValidationContext(appOptions, serviceProvider: null, items: null);
-            var appOptionsValidationResults = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(appOptions, appOptionsContext, appOptionsValidationResults, validateAllProperties: true))
-            {
-                var appErrors = string.Join("\n", appOptionsValidationResults.Select(r => r.ErrorMessage));
-                throw new InvalidOperationException($"Invalid app configuration: {appErrors}");
-            }
+            var httpOptions = GetValidatedOptions<HttpOptions>(
+                services,
+                ctx.Configuration,
+                HttpOptions.SectionName,
+                "Invalid HTTP configuration");
 
-            var httpOptions = ctx.Configuration.GetSection(HttpOptions.SectionName).Get<HttpOptions>() ?? new HttpOptions();
-
-            var httpOptionsContext = new ValidationContext(httpOptions, serviceProvider: null, items: null);
-            var httpOptionsValidationResults = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(httpOptions, httpOptionsContext, httpOptionsValidationResults, validateAllProperties: true))
-            {
-                var httpErrors = string.Join("\n", httpOptionsValidationResults.Select(r => r.ErrorMessage));
-                throw new InvalidOperationException($"Invalid HTTP configuration: {httpErrors}");
-            }
-
-            var observabilityOptions =
-                ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
-                new ObservabilityOptions();
-
-            var observabilityContext = new ValidationContext(observabilityOptions, serviceProvider: null, items: null);
-            var observabilityValidationResults = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(observabilityOptions, observabilityContext, observabilityValidationResults, validateAllProperties: true))
-            {
-                var observabilityErrors = string.Join("\n", observabilityValidationResults.Select(r => r.ErrorMessage));
-                throw new InvalidOperationException($"Invalid observability configuration: {observabilityErrors}");
-            }
+            _ = GetValidatedOptions<ObservabilityOptions>(
+                services,
+                ctx.Configuration,
+                ObservabilityOptions.SectionName,
+                "Invalid observability configuration");
 
             var fallbackUserAgents = httpOptions.FallbackUserAgents;
 
@@ -248,16 +246,43 @@ namespace FeedCord
             }
         }
 
-        private static void ValidateConfiguration(Config config)
+        internal static void ValidateConfiguration(Config config)
         {
-            var context = new ValidationContext(config, serviceProvider: null, items: null);
-            var results = new List<ValidationResult>();
+            var validator = new DataAnnotationValidateOptions<Config>(Options.DefaultName);
+            var validationResult = validator.Validate(Options.DefaultName, config);
 
-            if (Validator.TryValidateObject(config, context, results, validateAllProperties: true))
+            if (validationResult.Succeeded)
+            {
                 return;
+            }
 
-            var errors = string.Join("\n", results.Select(r => r.ErrorMessage));
+            var errors = string.Join("\n", validationResult.Failures ?? Array.Empty<string>());
             throw new InvalidOperationException($"Invalid config entry: {errors}");
+        }
+
+        private static TOptions GetValidatedOptions<TOptions>(
+            IServiceCollection services,
+            IConfiguration configuration,
+            string sectionName,
+            string validationErrorPrefix)
+            where TOptions : class, new()
+        {
+            services.AddOptions<TOptions>()
+                .Bind(configuration.GetSection(sectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            var options = configuration.GetSection(sectionName).Get<TOptions>() ?? new TOptions();
+            var validator = new DataAnnotationValidateOptions<TOptions>(Options.DefaultName);
+            var validationResult = validator.Validate(Options.DefaultName, options);
+
+            if (validationResult.Succeeded)
+            {
+                return options;
+            }
+
+            var errors = string.Join("\n", validationResult.Failures ?? Array.Empty<string>());
+            throw new InvalidOperationException($"{validationErrorPrefix}: {errors}");
         }
     }
 }
