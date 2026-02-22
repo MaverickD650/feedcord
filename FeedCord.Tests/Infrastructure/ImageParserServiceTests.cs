@@ -43,6 +43,27 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithEnclosureImageMissingUrl_UsesDescriptionImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='' />
+            <description><![CDATA[<img src='https://example.com/desc.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/desc.jpg", result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithValidXmlContainingMediaContent_ReturnsImageUrl()
         {
             // Arrange
@@ -60,6 +81,48 @@ namespace FeedCord.Tests.Infrastructure
 
             // Assert - May extract or fallback to webpage scrape
             Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaContentNonImageType_UsesContentEncodedImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/' xmlns:content='http://purl.org/rss/1.0/modules/content/'>
+    <channel>
+        <item>
+            <media:content type='video/mp4' url='https://example.com/video.mp4' />
+            <content:encoded><![CDATA[<img src='https://example.com/encoded.jpg' />]]></content:encoded>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/encoded.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaContentEmptyUrl_UsesItunesImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/' xmlns:itunes='http://www.itunes.com/dtds/podcast.dtd'>
+    <channel>
+        <item>
+            <media:thumbnail type='image/jpeg' url='' />
+            <itunes:image href='https://example.com/itunes.jpg' />
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/itunes.jpg", result);
         }
 
         [Fact]
@@ -83,6 +146,27 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithItunesImageMissingHref_UsesDescriptionImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast.dtd'>
+    <channel>
+        <item>
+            <itunes:image href='' />
+            <description><![CDATA[<img src='https://example.com/desc-image.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/desc-image.jpg", result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithImageInDescription_ReturnsImageUrl()
         {
             // Arrange
@@ -100,6 +184,55 @@ namespace FeedCord.Tests.Infrastructure
 
             // Assert
             Assert.Equal("https://example.com/desc-image.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithDescriptionImgEmptySrc_UsesContentEncodedImage()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:content='http://purl.org/rss/1.0/modules/content/'>
+    <channel>
+        <item>
+            <description><![CDATA[<img src='' />]]></description>
+            <content:encoded><![CDATA[<img src='https://example.com/content.jpg' />]]></content:encoded>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/content.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithDescriptionAndContentWithoutImages_FallsBackToWebpageScrape()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:content='http://purl.org/rss/1.0/modules/content/'>
+    <channel>
+        <item>
+            <description><![CDATA[No image here]]></description>
+            <content:encoded><![CDATA[Still no image]]></content:encoded>
+        </item>
+    </channel>
+</rss>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html><meta property='og:image' content='https://example.com/fallback.jpg'/></html>")
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
         }
 
         [Fact]
@@ -148,6 +281,33 @@ namespace FeedCord.Tests.Infrastructure
     <channel>
         <item>
             <enclosure type='invalid' url='data:image/jpeg;base64,abc' />
+        </item>
+    </channel>
+</rss>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html><meta property='og:image' content='https://example.com/fallback.jpg'/></html>")
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithJavascriptImageUrl_FallsBackToWebpageScrape()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='javascript:alert(1)' />
         </item>
     </channel>
 </rss>";
@@ -283,6 +443,31 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithOgImageMissingContent_UsesTwitterImage()
+        {
+            // Arrange
+            var html = @"<html>
+<head>
+    <meta property='og:image'/>
+    <meta name='twitter:image' content='https://example.com/twitter.jpg'/>
+</head>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.Equal("https://example.com/twitter.jpg", result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithOgImageSecureUrl_ReturnsImageUrl()
         {
             // Arrange
@@ -355,6 +540,33 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithLinkImageSrcMissingHref_UsesDataSrcImage()
+        {
+            // Arrange
+            var html = @"<html>
+<head>
+    <link rel='image_src'/>
+</head>
+<body>
+    <img data-src='https://example.com/data-src.jpg'/>
+</body>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.Equal("https://example.com/data-src.jpg", result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithImgTagWithDataSrc_ReturnsImageUrl()
         {
             // Arrange
@@ -400,6 +612,30 @@ namespace FeedCord.Tests.Infrastructure
 
             // Assert
             Assert.Equal("https://example.com/post-image.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithElementIdDataSrc_ReturnsDataSrcImageUrl()
+        {
+            // Arrange
+            var html = @"<html>
+<body>
+    <img id='post-image' data-src='https://example.com/post-data-src.jpg'/>
+</body>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.Equal("https://example.com/post-data-src.jpg", result);
         }
 
         [Fact]
