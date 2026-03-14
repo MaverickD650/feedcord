@@ -1848,6 +1848,242 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(invalidUrl, result);
     }
 
+    [Fact(Timeout = 20000)]
+    public async Task GetAsyncWithFallback_WhenResponseIsNotModified_DoesNotTryFallbacks()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+      var sendCount = 0;
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>((_, _) =>
+          {
+            sendCount++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotModified));
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Fallback-UA" });
+
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
+
+      Assert.NotNull(response);
+      Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
+      Assert.Equal(1, sendCount);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task PostAsyncWithFallback_WhenTokenCanceledBeforeAcquire_ThrowsAndSkipsSend()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+      var sendCount = 0;
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>((_, _) =>
+          {
+            sendCount++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+      var forumContent = new StringContent("{}");
+      var textContent = new StringContent("{}");
+
+      using var cts = new CancellationTokenSource();
+      cts.Cancel();
+
+      await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+          client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, isForum: false, cts.Token));
+
+      Assert.Equal(0, sendCount);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task GetAsyncWithFallback_OnSecondCall_SendsConditionalHeadersFromFirstResponse()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+      HttpRequestMessage? secondRequest = null;
+      var sendCount = 0;
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+          {
+            sendCount++;
+
+            if (sendCount == 1)
+            {
+              var initialResponse = new HttpResponseMessage(HttpStatusCode.OK)
+              {
+                Content = new StringContent("ok")
+              };
+              initialResponse.Headers.ETag = new EntityTagHeaderValue("\"etag-v1\"");
+              initialResponse.Content.Headers.LastModified = new DateTimeOffset(2025, 1, 2, 3, 4, 5, TimeSpan.Zero);
+              return Task.FromResult(initialResponse);
+            }
+
+            secondRequest = request;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotModified));
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+
+      var url = "https://example.com/conditional-feed";
+
+      var first = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+      var second = await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+
+      Assert.NotNull(first);
+      Assert.NotNull(second);
+      Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+      Assert.NotNull(secondRequest);
+      Assert.NotEmpty(secondRequest!.Headers.IfNoneMatch);
+      Assert.Equal("\"etag-v1\"", secondRequest.Headers.IfNoneMatch.Single().Tag);
+      Assert.True(secondRequest.Headers.IfModifiedSince.HasValue);
+      Assert.Equal(new DateTimeOffset(2025, 1, 2, 3, 4, 5, TimeSpan.Zero), secondRequest.Headers.IfModifiedSince!.Value);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task GetAsyncWithFallback_WhenCachedEtagIsInvalid_SendsOnlyIfModifiedSince()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+      HttpRequestMessage? secondRequest = null;
+      var sendCount = 0;
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+          {
+            sendCount++;
+
+            if (sendCount == 1)
+            {
+              var initialResponse = new HttpResponseMessage(HttpStatusCode.OK)
+              {
+                Content = new StringContent("ok")
+              };
+              initialResponse.Headers.TryAddWithoutValidation("ETag", "invalid-etag-value");
+              initialResponse.Content.Headers.LastModified = new DateTimeOffset(2025, 5, 6, 7, 8, 9, TimeSpan.Zero);
+              return Task.FromResult(initialResponse);
+            }
+
+            secondRequest = request;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+              Content = new StringContent("ok")
+            });
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+      var url = "https://example.com/invalid-etag";
+
+      await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+      await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+
+      Assert.NotNull(secondRequest);
+      Assert.Empty(secondRequest!.Headers.IfNoneMatch);
+      Assert.True(secondRequest.Headers.IfModifiedSince.HasValue);
+      Assert.Equal(new DateTimeOffset(2025, 5, 6, 7, 8, 9, TimeSpan.Zero), secondRequest.Headers.IfModifiedSince!.Value);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task GetAsyncWithFallback_WhenInitialResponseHasNoConditionalHeaders_DoesNotSendConditionalHeaders()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+      HttpRequestMessage? secondRequest = null;
+      var sendCount = 0;
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+          {
+            sendCount++;
+
+            if (sendCount == 1)
+            {
+              return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+              {
+                Content = new StringContent("ok")
+              });
+            }
+
+            secondRequest = request;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+              Content = new StringContent("ok")
+            });
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+      var url = "https://example.com/no-conditional-state";
+
+      await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+      await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
+
+      Assert.NotNull(secondRequest);
+      Assert.Empty(secondRequest!.Headers.IfNoneMatch);
+      Assert.False(secondRequest.Headers.IfModifiedSince.HasValue);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task PostAsyncWithFallback_WhenForumModeAndBothAttemptsFail_UsesBothPayloadOrders()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+      var sentBodies = new List<string>();
+
+      handler.Protected()
+          .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+          .Returns<HttpRequestMessage, CancellationToken>(async (request, _) =>
+          {
+            var body = request.Content is null
+              ? string.Empty
+              : await request.Content.ReadAsStringAsync();
+            sentBodies.Add(body);
+
+            return new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+              Content = new StringContent("bad payload")
+            };
+          });
+
+      var httpClient = new HttpClient(handler.Object);
+      var throttle = new SemaphoreSlim(1, 1);
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+
+      var forumContent = new StringContent("{\"kind\":\"forum\"}");
+      var textContent = new StringContent("{\"kind\":\"text\"}");
+
+      await client.PostAsyncWithFallback(
+          "https://discord.com/api/webhooks/123",
+          forumContent,
+          textContent,
+          isForum: true,
+          cancellationToken: TestContext.Current.CancellationToken);
+
+      Assert.Equal(2, sentBodies.Count);
+      Assert.Equal("{\"kind\":\"forum\"}", sentBodies[0]);
+      Assert.Equal("{\"kind\":\"text\"}", sentBodies[1]);
+    }
+
     #endregion
   }
 }

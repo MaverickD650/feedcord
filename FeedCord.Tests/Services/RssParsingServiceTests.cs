@@ -505,4 +505,143 @@ public class RssParsingServiceTests
 
     Assert.Equal(string.Empty, result as string);
   }
+
+  [Fact]
+  public async Task ParseRssFeedAsync_MinPublishDateEqualToItemDate_DoesNotEvaluateImages()
+  {
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<rss version=""2.0""><channel>
+  <title>Boundary Feed</title>
+  <item>
+    <title>Boundary Item</title>
+    <link>http://example.com/boundary</link>
+    <description>Boundary description</description>
+    <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+  </item>
+</channel></rss>";
+
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
+
+    var minPublishDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    var result = await service.ParseRssFeedAsync(
+      xmlContent,
+      trim: 250,
+      imageFetchMode: ImageFetchMode.PageOnly,
+      minPublishDate: minPublishDate,
+      cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.NotNull(result);
+    _mockImageParser.Verify(
+      x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()),
+      Times.Never);
+  }
+
+  [Fact]
+  public async Task ParseRssFeedAsync_WhenImageParserReturnsNull_UsesFeedImageUrlFallback()
+  {
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<rss version=""2.0"">
+  <channel>
+    <title>Fallback Feed</title>
+    <link>http://example.com</link>
+    <description>Feed with fallback image</description>
+    <image>
+      <url>http://example.com/feed-image.jpg</url>
+    </image>
+    <item>
+      <title>New Item</title>
+      <link>http://example.com/new</link>
+      <description>Fresh content</description>
+      <pubDate>Tue, 02 Jan 2024 00:00:00 +0000</pubDate>
+      <author>Feed Author</author>
+    </item>
+  </channel>
+</rss>";
+
+    _mockImageParser
+      .Setup(x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()))
+      .ReturnsAsync((string?)null);
+
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
+
+    var result = await service.ParseRssFeedAsync(
+      xmlContent,
+      trim: 250,
+      imageFetchMode: ImageFetchMode.FeedThenPage,
+      minPublishDate: null,
+      cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.NotNull(result);
+    Assert.Single(result);
+    Assert.Equal("http://example.com/feed-image.jpg", result[0]?.ImageUrl);
+    _mockImageParser.Verify(
+      x => x.TryExtractImageLink("http://example.com/new", It.IsAny<string>(), ImageFetchMode.FeedThenPage),
+      Times.Once);
+  }
+
+  [Fact]
+  public async Task ParseRssFeedAsync_WithMixedOldAndNewItems_OnlyEligibleItemsInvokeImageParser()
+  {
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<rss version=""2.0"">
+  <channel>
+    <title>Mixed Feed</title>
+    <link>http://example.com</link>
+    <description>Mixed publish dates</description>
+    <image>
+      <url>http://example.com/feed-image.jpg</url>
+    </image>
+    <item>
+      <title>Old Item</title>
+      <link>http://example.com/old</link>
+      <description>Old content</description>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+      <author>Author Old</author>
+    </item>
+    <item>
+      <title>New Item</title>
+      <link>http://example.com/new</link>
+      <description>New content</description>
+      <pubDate>Fri, 01 Mar 2024 00:00:00 +0000</pubDate>
+      <author>Author New</author>
+    </item>
+  </channel>
+</rss>";
+
+    _mockImageParser
+      .Setup(x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()))
+      .ReturnsAsync("http://example.com/from-image-parser.jpg");
+
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
+
+    var minPublishDate = new DateTime(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    var result = await service.ParseRssFeedAsync(
+      xmlContent,
+      trim: 250,
+      imageFetchMode: ImageFetchMode.PageOnly,
+      minPublishDate: minPublishDate,
+      cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.NotNull(result);
+    _mockImageParser.Verify(
+      x => x.TryExtractImageLink("http://example.com/new", It.IsAny<string>(), ImageFetchMode.PageOnly),
+      Times.Once);
+    _mockImageParser.Verify(
+      x => x.TryExtractImageLink("http://example.com/old", It.IsAny<string>(), It.IsAny<ImageFetchMode>()),
+      Times.Never);
+  }
 }

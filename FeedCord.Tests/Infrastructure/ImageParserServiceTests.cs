@@ -1190,6 +1190,141 @@ namespace FeedCord.Tests.Infrastructure
       _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ReusesCachedImageOnSecondCall()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/cache-hit", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head><meta property='og:image' content='https://example.com/cached-image.jpg' /></head></html>")
+          });
+
+      var first = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-hit",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      var second = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-hit",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal("https://example.com/cached-image.jpg", first);
+      Assert.Equal("https://example.com/cached-image.jpg", second);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/cache-hit", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_CachesEmptyResultAndSkipsSecondFetch()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/cache-empty", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head></head><body><p>No image here</p></body></html>")
+          });
+
+      var first = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-empty",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      var second = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-empty",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal(string.Empty, first);
+      Assert.Equal(string.Empty, second);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/cache-empty", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ExpiredCachedEntry_RemovesAndRefetches()
+    {
+      // Arrange
+      var pageUrl = "https://example.com/cache-expired";
+      SetPrivateCacheEntry(_imageParserService, pageUrl, "https://example.com/old.jpg", DateTime.UtcNow.AddMinutes(-1));
+
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback(pageUrl, It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head><meta property='og:image' content='https://example.com/new.jpg' /></head></html>")
+          });
+
+      // Act
+      var result = await _imageParserService.TryExtractImageLink(pageUrl, string.Empty, ImageFetchMode.PageOnly);
+
+      // Assert
+      Assert.Equal("https://example.com/new.jpg", result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback(pageUrl, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ValidCachedEntry_ReturnsCachedWithoutFetch()
+    {
+      // Arrange
+      var pageUrl = "https://example.com/cache-valid";
+      SetPrivateCacheEntry(_imageParserService, pageUrl, "https://example.com/cached.jpg", DateTime.UtcNow.AddMinutes(5));
+
+      // Act
+      var result = await _imageParserService.TryExtractImageLink(pageUrl, string.Empty, ImageFetchMode.PageOnly);
+
+      // Assert
+      Assert.Equal("https://example.com/cached.jpg", result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback(pageUrl, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetCachedPageImage_WhenCacheExceedsCapacity_RemovesExpiredEntriesOnly()
+    {
+      // Arrange
+      const string expiredPageUrl = "https://example.com/expired-entry";
+      const string validPageUrl = "https://example.com/valid-entry";
+      var cache = GetPrivateCache(_imageParserService);
+
+      SetPrivateCacheEntry(_imageParserService, expiredPageUrl, "https://example.com/expired.jpg", DateTime.UtcNow.AddMinutes(-5));
+      SetPrivateCacheEntry(_imageParserService, validPageUrl, "https://example.com/valid.jpg", DateTime.UtcNow.AddMinutes(5));
+
+      for (var index = 0; index < 1999; index++)
+      {
+        SetPrivateCacheEntry(
+            _imageParserService,
+            $"https://example.com/filler-{index}",
+            $"https://example.com/filler-{index}.jpg",
+            DateTime.UtcNow.AddMinutes(5));
+      }
+
+      var setCachedPageImage = typeof(ImageParserService).GetMethod("SetCachedPageImage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+      // Act
+      setCachedPageImage!.Invoke(_imageParserService, ["https://example.com/new-entry", "https://example.com/new.jpg"]);
+
+      // Assert
+      Assert.Null(cache[expiredPageUrl]);
+      Assert.NotNull(cache[validPageUrl]);
+      Assert.NotNull(cache["https://example.com/new-entry"]);
+    }
+
+    private static void SetPrivateCacheEntry(ImageParserService service, string pageUrl, string imageUrl, DateTime expiresAtUtc)
+    {
+      var cache = GetPrivateCache(service);
+
+      var cachedLookupType = typeof(ImageParserService).GetNestedType("CachedImageLookup", System.Reflection.BindingFlags.NonPublic)!;
+      var cachedLookup = Activator.CreateInstance(cachedLookupType, imageUrl, expiresAtUtc)!;
+
+      var indexer = cache.GetType().GetProperty("Item");
+      indexer!.SetValue(cache, cachedLookup, [pageUrl]);
+    }
+
+    private static System.Collections.IDictionary GetPrivateCache(ImageParserService service)
+    {
+      var cacheField = typeof(ImageParserService).GetField("_pageImageCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+      return (System.Collections.IDictionary)cacheField!.GetValue(service)!;
+    }
+
     #endregion
   }
 }
