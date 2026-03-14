@@ -1190,6 +1190,56 @@ namespace FeedCord.Tests.Infrastructure
       _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ReusesCachedImageOnSecondCall()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/cache-hit", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head><meta property='og:image' content='https://example.com/cached-image.jpg' /></head></html>")
+          });
+
+      var first = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-hit",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      var second = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-hit",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal("https://example.com/cached-image.jpg", first);
+      Assert.Equal("https://example.com/cached-image.jpg", second);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/cache-hit", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_CachesEmptyResultAndSkipsSecondFetch()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/cache-empty", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head></head><body><p>No image here</p></body></html>")
+          });
+
+      var first = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-empty",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      var second = await _imageParserService.TryExtractImageLink(
+          "https://example.com/cache-empty",
+          string.Empty,
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal(string.Empty, first);
+      Assert.Equal(string.Empty, second);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/cache-empty", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
   }
 }
