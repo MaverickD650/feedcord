@@ -34,6 +34,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -124,9 +126,14 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/${{ needs.build.outputs.repo }}@sha256:%s ' *)
+            $(printf 'ghcr.io/${NEEDS_BUILD_OUTPUTS_REPO}@sha256:%s ' *)
+        env:
+          NEEDS_BUILD_OUTPUTS_REPO: ${{ needs.build.outputs.repo }}
 
       - name: Inspect image
         if: github.event_name != 'pull_request'
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ needs.build.outputs.repo }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${NEEDS_BUILD_OUTPUTS_REPO}:${STEPS_META_OUTPUTS_VERSION}
+        env:
+          NEEDS_BUILD_OUTPUTS_REPO: ${{ needs.build.outputs.repo }}
+          STEPS_META_OUTPUTS_VERSION: ${{ steps.meta.outputs.version }}
