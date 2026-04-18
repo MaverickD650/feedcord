@@ -284,6 +284,38 @@ public class LogAggregatorTests
   }
 
   [Fact]
+  public async Task SendToBatchAsync_WhenBatchLoggerThrows_PropagatesException()
+  {
+    var config = CreateTestConfig();
+    var aggregator = new LogAggregator(_mockBatchLogger.Object, config);
+
+    _mockBatchLogger
+        .Setup(x => x.ConsumeLogData(aggregator))
+        .ThrowsAsync(new InvalidOperationException("batch failure"));
+
+    await Assert.ThrowsAsync<InvalidOperationException>(() => aggregator.SendToBatchAsync());
+  }
+
+  [Fact]
+  public async Task SendToBatchAsync_WhenCalledConcurrently_ForwardsEachCall()
+  {
+    var config = CreateTestConfig();
+    var aggregator = new LogAggregator(_mockBatchLogger.Object, config);
+
+    _mockBatchLogger
+        .Setup(x => x.ConsumeLogData(aggregator))
+        .Returns(Task.CompletedTask);
+
+    var tasks = Enumerable.Range(0, 8)
+        .Select(_ => aggregator.SendToBatchAsync())
+        .ToArray();
+
+    await Task.WhenAll(tasks);
+
+    _mockBatchLogger.Verify(x => x.ConsumeLogData(aggregator), Times.Exactly(8));
+  }
+
+  [Fact]
   public void Reset_ClearsAllData()
   {
     // Arrange
