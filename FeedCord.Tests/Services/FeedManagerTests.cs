@@ -160,6 +160,83 @@ public class FeedManagerCoverageTests
   }
 
   [Fact]
+  public async Task CheckForNewPostsAsync_WithMixedFeedOutcomes_ReturnsSuccessfulPostsOnly()
+  {
+    var firstUrl = "https://example.com/rss-a";
+    var secondUrl = "https://example.com/rss-b";
+    var referenceDate = new DateTime(2024, 04, 01, 10, 0, 0, DateTimeKind.Utc);
+    var newerDate = referenceDate.AddMinutes(15);
+    var config = CreateConfig(rssUrls: [firstUrl, secondUrl]);
+
+    var mockStore = new Mock<IReferencePostStore>(MockBehavior.Strict);
+    mockStore
+        .Setup(s => s.LoadReferencePosts())
+        .Returns(new Dictionary<string, ReferencePost>
+        {
+          [firstUrl] = new() { LastRunDate = referenceDate },
+          [secondUrl] = new() { LastRunDate = referenceDate }
+        });
+
+    var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+    mockHttpClient
+        .Setup(x => x.GetAsyncWithFallback(firstUrl, It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+          Content = new StringContent("<rss>feed-a</rss>")
+        });
+    mockHttpClient
+        .Setup(x => x.GetAsyncWithFallback(secondUrl, It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+          Content = new StringContent("<rss>feed-b</rss>")
+        });
+
+    var freshPost = CreatePost("new-a", newerDate);
+    var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Strict);
+    mockRssParser
+        .Setup(x => x.ParseRssFeedAsync(
+            It.Is<string>(s => s.Contains("feed-a", StringComparison.Ordinal)),
+            It.IsAny<int>(),
+            It.IsAny<ImageFetchMode>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync([freshPost]);
+    mockRssParser
+        .Setup(x => x.ParseRssFeedAsync(
+            It.Is<string>(s => s.Contains("feed-b", StringComparison.Ordinal)),
+            It.IsAny<int>(),
+            It.IsAny<ImageFetchMode>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<CancellationToken>()))
+        .ThrowsAsync(new InvalidOperationException("parser boom"));
+
+    var mockFilter = new Mock<IPostFilterService>(MockBehavior.Strict);
+    mockFilter
+        .Setup(x => x.ShouldIncludePost(It.IsAny<Post>(), firstUrl))
+        .Returns(true);
+
+    var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+    var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+    var manager = new FeedManager(
+        config,
+        mockHttpClient.Object,
+        mockRssParser.Object,
+        mockLogger.Object,
+        mockAggregator.Object,
+        mockFilter.Object,
+        mockStore.Object);
+
+    await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+    var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
+
+    Assert.Collection(results,
+      post => Assert.Equal("new-a", post.Title)
+    );
+    mockAggregator.Verify(x => x.AddLatestUrlPost(secondUrl, null), Times.Once);
+  }
+
+  [Fact]
   public async Task InitializeUrlsAsync_WhenHttpRequestExceptionHasNoStatus_RecordsBadRequest()
   {
     var config = CreateConfig(rssUrls: [RssUrl]);
