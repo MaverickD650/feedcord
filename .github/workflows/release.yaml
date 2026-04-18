@@ -162,7 +162,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s ' *)
+            $(printf "ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s " *)
         env:
           STEPS_DOWNCASE_OUTPUTS_REPO: ${{ steps.downcase.outputs.repo }}
 
