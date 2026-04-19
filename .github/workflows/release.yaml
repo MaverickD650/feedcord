@@ -162,21 +162,17 @@ jobs:
             type=semver,pattern={{version}}
 
       - name: Create manifest list and push
+        id: manifest
         working-directory: ${{ runner.temp }}/digests
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf "ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s " *)
+          REF=$(docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s " *) \
+            --dry-run | jq -r '.digest')
+      
+          echo "digest_url=ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@${REF}" >> "$GITHUB_OUTPUT"
         env:
           STEPS_DOWNCASE_OUTPUTS_REPO: ${{ steps.downcase.outputs.repo }}
-
-      - name: Resolve digest URL
-        id: digest
-        env:
-          IMAGE: ghcr.io/${{ steps.downcase.outputs.repo }}
-          TAG: ${{ steps.meta.outputs.version }}
-        run: |
-          DIGEST="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
-          echo "digest_url=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Sign artifact
         run: cosign sign --yes "$DIGEST_URL"
