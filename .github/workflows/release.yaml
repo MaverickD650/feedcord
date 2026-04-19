@@ -164,15 +164,29 @@ jobs:
       - name: Create manifest list and push
         id: manifest
         working-directory: ${{ runner.temp }}/digests
-        run: |
-          REF=$(docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf "ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s " *) \
-            --dry-run | jq -r '.digest')
-      
-          echo "digest_url=ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@${REF}" >> "$GITHUB_OUTPUT"
         env:
-          STEPS_DOWNCASE_OUTPUTS_REPO: ${{ steps.downcase.outputs.repo }}
+          IMAGE: ghcr.io/${{ steps.downcase.outputs.repo }}
+        run: |
+          # Build tag arguments from metadata
+          TAG_ARGS=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+      
+          # Build source image list
+          SOURCES=$(printf "$IMAGE@sha256:%s " *)
+      
+          # Create + capture digest deterministically
+          OUTPUT=$(docker buildx imagetools create $TAG_ARGS $SOURCES)
+      
+          echo "$OUTPUT"
+      
+          DIGEST=$(echo "$OUTPUT" | awk '/sha256:/ {print $NF; exit}')
+      
+          if [ -z "$DIGEST" ]; then
+            echo "Failed to extract digest from imagetools output"
+            exit 1
+          fi
+      
+          echo "Resolved digest: $DIGEST"
+          echo "digest_url=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Sign artifact
         run: cosign sign --yes "$DIGEST_URL"
