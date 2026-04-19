@@ -122,6 +122,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
@@ -142,6 +143,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+
       - name: Log in to Container Registry
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
@@ -159,17 +163,22 @@ jobs:
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
-        if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}@sha256:%s " *)
         env:
           STEPS_DOWNCASE_OUTPUTS_REPO: ${{ steps.downcase.outputs.repo }}
 
-      - name: Inspect image
-        if: github.event_name != 'pull_request'
-        run: |
-          docker buildx imagetools inspect ghcr.io/${STEPS_DOWNCASE_OUTPUTS_REPO}:${STEPS_META_OUTPUTS_VERSION}
+      - name: Resolve digest URL
+        id: digest
         env:
-          STEPS_DOWNCASE_OUTPUTS_REPO: ${{ steps.downcase.outputs.repo }}
-          STEPS_META_OUTPUTS_VERSION: ${{ steps.meta.outputs.version }}
+          IMAGE: ghcr.io/${{ steps.downcase.outputs.repo }}
+          TAG: ${{ steps.meta.outputs.version }}
+        run: |
+          DIGEST="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
+          echo "digest_url=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Sign artifact
+        run: cosign sign --yes "$DIGEST_URL"
+        env:
+          DIGEST_URL: ${{ steps.digest.outputs.digest_url }}
