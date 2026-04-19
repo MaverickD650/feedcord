@@ -173,22 +173,21 @@ jobs:
           # Build source image list
           SOURCES=$(printf "$IMAGE@sha256:%s " *)
       
-          # Create + capture digest deterministically
-          OUTPUT=$(docker buildx imagetools create $TAG_ARGS $SOURCES)
-      
-          echo "$OUTPUT"
-      
-          DIGEST=$(echo "$OUTPUT" | awk '/sha256:/ {print $NF; exit}')
-      
-          if [ -z "$DIGEST" ]; then
-            echo "Failed to extract digest from imagetools output"
+          # Create manifest list and push
+          docker buildx imagetools create $TAG_ARGS $SOURCES
+
+          # Extract digest from the created manifest via inspect
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${DOCKER_METADATA_OUTPUT_VERSION}" --format '{{json .Manifest}}' | jq -r '.digest')
+
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            echo "Failed to extract digest from imagetools inspect"
             exit 1
           fi
-      
+
           echo "Resolved digest: $DIGEST"
           echo "digest_url=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Sign artifact
         run: cosign sign --yes "$DIGEST_URL"
         env:
-          DIGEST_URL: ${{ steps.digest.outputs.digest_url }}
+          DIGEST_URL: ${{ steps.manifest.outputs.digest_url }}
